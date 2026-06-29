@@ -77,7 +77,7 @@ const Navbar = ({ players, started, time, isReady, rolledNumber, nowMoving, movi
                 
                 return (
                     <div className={`${styles.playerContainer} ${styles[assignedColor]} ${styles[getPositionalClass(assignedColor, localColor)]}`} key={index}>
-                        {!isLocalSlotEmpty && <NameContainer player={player} time={time} />}
+                        {!isLocalSlotEmpty && <NameContainer player={player} time={time} isPaused={isPaused} timerEnabled={timerEnabled} />}
                         
                         {/* Empty slot in lobby -> Add local player */}
                         {isAdmin && !started && isLocalSlotEmpty && (

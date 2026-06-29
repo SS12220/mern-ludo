@@ -15,11 +15,27 @@ const makeRandomMove = async roomId => {
     }
 
     const pawnsThatCanMove = room.getPawnsThatCanMove();
+    let cut = false;
+    let isHome = false;
+    const rolledSix = room.rolledNumber === 6;
+
     if (pawnsThatCanMove.length > 0) {
         const randomPawn = pawnsThatCanMove[Math.floor(Math.random() * pawnsThatCanMove.length)];
-        room.movePawn(randomPawn);
+        const newPositionOfMovedPawn = randomPawn.getPositionAfterMove(room.rolledNumber);
+        room.changePositionOfPawn(randomPawn, newPositionOfMovedPawn);
+        cut = room.beatPawns(newPositionOfMovedPawn, randomPawn.color);
+        isHome = [73, 79, 85, 91].includes(newPositionOfMovedPawn);
     }
-    room.changeMovingPlayer();
+    
+    if (pawnsThatCanMove.length > 0 && (cut || isHome || rolledSix)) {
+        room.rolledNumber = null;
+        const timeoutManager = require('../models/timeoutManager');
+        const { MOVE_TIME } = require('../utils/constants');
+        timeoutManager.clear(room._id.toString());
+        timeoutManager.set(makeRandomMove, MOVE_TIME, room._id.toString());
+    } else {
+        room.changeMovingPlayer();
+    }
     const winner = room.getWinner();
     if (winner) {
         room.endGame(winner);

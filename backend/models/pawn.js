@@ -9,7 +9,7 @@ const PawnSchema = new Schema({
 });
 
 PawnSchema.methods.canMove = function (rolledNumber) {
-    if (this.position === this.basePos && (rolledNumber === 6 || rolledNumber === 1)) {
+    if (this.position === this.basePos && rolledNumber === 6) {
         return true;
     }
     // (if player's pawn is near finish line) if the move does not go beyond the win line

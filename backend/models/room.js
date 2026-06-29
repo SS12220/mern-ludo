@@ -36,13 +36,19 @@ const RoomSchema = new mongoose.Schema({
 });
 
 RoomSchema.methods.beatPawns = function (position, attackingPawnColor) {
+    const safeSpots = [16, 24, 29, 37, 42, 50, 55, 63];
+    if (safeSpots.includes(position)) return false;
+
+    let cut = false;
     const pawnsOnPosition = this.pawns.filter(pawn => pawn.position === position);
     pawnsOnPosition.forEach(pawn => {
         if (pawn.color !== attackingPawnColor) {
             const index = this.getPawnIndex(pawn._id);
             this.pawns[index].position = this.pawns[index].basePos;
+            cut = true;
         }
     });
+    return cut;
 };
 
 RoomSchema.methods.changeMovingPlayer = function () {

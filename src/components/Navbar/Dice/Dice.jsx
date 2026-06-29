@@ -42,7 +42,9 @@ const Dice = ({ rolledNumber, nowMoving, playerColor, movingPlayer }) => {
                 ) : nowMoving ? (
                     <img src={images[6]} className='roll' alt='roll' onClick={handleClick} />
                 ) : null
-            ) : null}
+            ) : (
+                <div className={styles.placeholder} />
+            )}
         </div>
     );
 };

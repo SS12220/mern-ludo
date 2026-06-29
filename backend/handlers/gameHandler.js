@@ -45,8 +45,13 @@ module.exports = socket => {
         const movingPlayer = room.getCurrentlyMovingPlayer();
         
         if (!movingPlayer.canMove(room, rolledNumber)) {
-            room.changeMovingPlayer();
-            await updateRoom(room);
+            setTimeout(async () => {
+                const latestRoom = await getRoom(req.session.roomId);
+                if (latestRoom && latestRoom.rolledNumber === rolledNumber) {
+                    latestRoom.changeMovingPlayer();
+                    await updateRoom(latestRoom);
+                }
+            }, 1000);
         }
     };
 

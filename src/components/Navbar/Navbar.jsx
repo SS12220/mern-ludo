@@ -33,10 +33,10 @@ const Navbar = ({ players, started, time, isReady, rolledNumber, nowMoving, movi
 
     const getPositionalClass = (targetColor, localColor) => {
         const layouts = {
-            blue: { red: 'posTL', yellow: 'posTR', blue: 'posBL', green: 'posBR' }, // 0 deg
-            red: { red: 'posBL', yellow: 'posTL', blue: 'posBR', green: 'posTR' }, // -90 deg
-            green: { red: 'posTR', yellow: 'posBR', blue: 'posTL', green: 'posBL' }, // +90 deg
-            yellow: { red: 'posBR', yellow: 'posBL', blue: 'posTR', green: 'posTL' } // 180 deg
+            blue: { red: 'posTL', green: 'posTR', blue: 'posBL', yellow: 'posBR' }, // 0 deg
+            red: { red: 'posBL', green: 'posTL', blue: 'posBR', yellow: 'posTR' }, // -90 deg
+            green: { red: 'posBR', green: 'posBL', blue: 'posTR', yellow: 'posTL' }, // +180 deg
+            yellow: { red: 'posTR', green: 'posBR', blue: 'posTL', yellow: 'posBL' } // +90 deg
         };
         const currentLayout = layouts[localColor] || layouts.blue;
         return currentLayout[targetColor] || 'posTL';

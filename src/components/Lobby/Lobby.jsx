@@ -10,9 +10,6 @@ const Lobby = ({ players, adminId }) => {
 
     const isAdmin = context.playerId === adminId;
 
-    const handleReady = () => {
-        socket.emit('player:ready');
-    };
 
     const handleChangeColor = (playerId, newColor) => {
         socket.emit('room:changeColor', { targetPlayerId: playerId, newColor });
@@ -53,15 +50,48 @@ const Lobby = ({ players, adminId }) => {
                                     </button>
                                 )}
 
-                                {!isEmpty && isAdmin && (
-                                    <select
-                                        className={styles.colorSelect}
-                                        value={player.color}
-                                        onChange={(e) => handleChangeColor(player._id, e.target.value)}
-                                    >
-                                        {ALL_COLORS.map(c => <option key={c} value={c}>{c.toUpperCase()}</option>)}
-                                    </select>
-                                )}
+                                {!isEmpty && isAdmin && (() => {
+                                    const activePlayers = players.filter(p => p.name !== '...');
+                                    const numPlayers = activePlayers.length;
+                                    const usedColors = activePlayers.map(p => p.color);
+                                    
+                                    if (numPlayers === 2) {
+                                        // Case B: 2 players logic
+                                        // We restrict the dropdown to only the allowed valid choices, it makes it foolproof.
+                                        // The user specifically asked to "Force lock Player 2". Let's lock players who are NOT the Admin.
+                                        const isLocked = player._id !== adminId;
+                                        
+                                        return (
+                                            <select
+                                                className={styles.colorSelect}
+                                                value={player.color}
+                                                onChange={(e) => handleChangeColor(player._id, e.target.value)}
+                                                disabled={isLocked}
+                                            >
+                                                {ALL_COLORS.map(c => <option key={c} value={c}>{c.toUpperCase()}</option>)}
+                                            </select>
+                                        );
+                                    } else {
+                                        // Case A: 3 or 4 players logic
+                                        // Gray out colors taken by other players
+                                        return (
+                                            <select
+                                                className={styles.colorSelect}
+                                                value={player.color}
+                                                onChange={(e) => handleChangeColor(player._id, e.target.value)}
+                                            >
+                                                {ALL_COLORS.map(c => {
+                                                    const isTakenByOther = usedColors.includes(c) && c !== player.color;
+                                                    return (
+                                                        <option key={c} value={c} disabled={isTakenByOther}>
+                                                            {c.toUpperCase()} {isTakenByOther ? '(Taken)' : ''}
+                                                        </option>
+                                                    );
+                                                })}
+                                            </select>
+                                        );
+                                    }
+                                })()}
 
                                 {!isEmpty && isAdmin && !isMe && (
                                     <button className={styles.kickBtn} onClick={() => socket.emit('game:kick', player._id)}>

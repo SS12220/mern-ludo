@@ -33,6 +33,18 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
     const socket = useContext(SocketContext);
     const canvasRef = useRef(null);
     const [hintPawn, setHintPawn] = useState();
+    const [effectiveRolledNumber, setEffectiveRolledNumber] = useState(null);
+
+    useEffect(() => {
+        if (rolledNumber) {
+            const timer = setTimeout(() => {
+                setEffectiveRolledNumber(rolledNumber);
+            }, 500); // 500ms matches the dice spin animation duration
+            return () => clearTimeout(timer);
+        } else {
+            setEffectiveRolledNumber(null);
+        }
+    }, [rolledNumber]);
     
     // Store animated positions
     const visualPawnsRef = useRef([]);
@@ -122,14 +134,14 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
         
         for (const pawn of visualPawnsRef.current) {
             if (ctx.isPointInPath(pawn.touchableArea, cursorX, cursorY)) {
-                if (canPawnMove(pawn, rolledNumber) && canInteractWithColor(pawn.color)) socket.emit('game:move', pawn._id);
+                if (canPawnMove(pawn, effectiveRolledNumber) && canInteractWithColor(pawn.color)) socket.emit('game:move', pawn._id);
             }
         }
         setHintPawn(null);
     };
 
     const handleMouseMove = event => {
-        if (!nowMoving || !rolledNumber) return;
+        if (!nowMoving || !effectiveRolledNumber) return;
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
         const x = event.nativeEvent.offsetX;
@@ -141,9 +153,9 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
                 pawn.touchableArea &&
                 ctx.isPointInPath(pawn.touchableArea, x, y) &&
                 canInteractWithColor(pawn.color) &&
-                canPawnMove(pawn, rolledNumber)
+                canPawnMove(pawn, effectiveRolledNumber)
             ) {
-                const pawnPosition = getPositionAfterMove(pawn, rolledNumber);
+                const pawnPosition = getPositionAfterMove(pawn, effectiveRolledNumber);
                 if (pawnPosition) {
                     canvas.style.cursor = 'pointer';
                     if (hintPawn && hintPawn.id === pawn._id) return;
@@ -164,9 +176,37 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
             // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw Map
+            // Draw Map with swapped Green/Yellow houses
             if (mapImage.complete) {
+                // 1. Draw the left half normally (Red TL, Blue BL)
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(0, 0, 230, 460); 
+                ctx.clip();
                 ctx.drawImage(mapImage, 0, 0);
+                ctx.restore();
+
+                // 2. Draw TR quadrant using the BR (Green) quadrant rotated -90 deg
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(230, 0, 230, 230);
+                ctx.clip();
+                ctx.translate(230, 230);
+                ctx.rotate(-90 * Math.PI / 180);
+                ctx.translate(-230, -230);
+                ctx.drawImage(mapImage, 0, 0);
+                ctx.restore();
+
+                // 3. Draw BR quadrant using the TR (Yellow) quadrant rotated +90 deg
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(230, 230, 230, 230);
+                ctx.clip();
+                ctx.translate(230, 230);
+                ctx.rotate(90 * Math.PI / 180);
+                ctx.translate(-230, -230);
+                ctx.drawImage(mapImage, 0, 0);
+                ctx.restore();
             }
 
             // Draw safe positions
@@ -203,7 +243,7 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
                     pawn.y = currentY;
                 }
 
-                const isValidToMove = canInteractWithColor(pawn.color) && rolledNumber && canPawnMove(pawn, rolledNumber);
+                const isValidToMove = canInteractWithColor(pawn.color) && effectiveRolledNumber && canPawnMove(pawn, effectiveRolledNumber);
                 pawn.touchableArea = paintPawn(ctx, pawn, currentX, currentY, isValidToMove);
             });
 
@@ -217,7 +257,7 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
 
         animationFrameRef.current = requestAnimationFrame(renderLoop);
         return () => cancelAnimationFrame(animationFrameRef.current);
-    }, [hintPawn, nowMoving, rolledNumber, localColor, rotationAngle, players, playerContext.playerId]);
+    }, [hintPawn, nowMoving, effectiveRolledNumber, localColor, rotationAngle, players, playerContext.playerId]);
 
     return (
         <canvas

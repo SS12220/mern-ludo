@@ -27,7 +27,7 @@ const getPositionAfterMove = (pawn, rolledNumber) => {
             } else {
                 return position;
             }
-        case 'green':
+        case 'yellow':
             if (pawn.position + rolledNumber <= 85) {
                 if (position >= 8 && position <= 11) {
                     return 42;
@@ -41,8 +41,8 @@ const getPositionAfterMove = (pawn, rolledNumber) => {
             } else {
                 return position;
             }
-        case 'yellow':
-            if (pawn.position + rolledNumber <= 85) {
+        case 'green':
+            if (pawn.position + rolledNumber <= 91) {
                 if (position >= 12 && position <= 15) {
                     return 29;
                 } else if (position <= 67 && position + rolledNumber > 67) {

@@ -11,10 +11,10 @@ const canPawnMove = (pawn, rolledNumber) => {
             case 'blue':
                 if (pawn.position + rolledNumber <= 79) return true;
                 break;
-            case 'green':
+            case 'yellow':
                 if (pawn.position + rolledNumber <= 85) return true;
                 break;
-            case 'yellow':
+            case 'green':
                 if (pawn.position + rolledNumber <= 91) return true;
                 break;
             default:

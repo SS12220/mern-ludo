@@ -29,8 +29,8 @@ const RoomSchema = new mongoose.Schema({
                 pawn.position = i;
                 if (i < 4) pawn.color = COLORS[0];
                 else if (i < 8) pawn.color = COLORS[1];
-                else if (i < 12) pawn.color = COLORS[2];
-                else if (i < 16) pawn.color = COLORS[3];
+                else if (i < 12) pawn.color = COLORS[3];
+                else if (i < 16) pawn.color = COLORS[2];
                 startPositions.push(pawn);
             }
             return startPositions;
@@ -140,11 +140,16 @@ RoomSchema.methods.getPlayer = function (playerId) {
 
 RoomSchema.methods.addPlayer = function (name, id) {
     if (this.full) return;
+    
+    // Find the first color not already taken by existing players
+    const usedColors = this.players.map(p => p.color);
+    const availableColor = COLORS.find(c => !usedColors.includes(c));
+
     this.players.push({
         sessionID: id,
         name: name,
         ready: false,
-        color: COLORS[this.players.length],
+        color: availableColor || COLORS[this.players.length],
     });
     if (this.players.length === 1) {
         this.adminId = this.players[0]._id.toString();

@@ -46,15 +46,31 @@ const makeRandomMove = async roomId => {
 
 const isMoveValid = (session, pawn, room) => {
     const movingPlayer = room.getCurrentlyMovingPlayer();
+    let allowedColor = movingPlayer.color;
+
+    if (room.teamMode) {
+        const isRed = movingPlayer.color === 'red';
+        const isBlue = movingPlayer.color === 'blue';
+        const isGreen = movingPlayer.color === 'green';
+        
+        const homePos = isRed ? 73 : isBlue ? 79 : isGreen ? 85 : 91;
+        const playerPawns = room.getPlayerPawns(movingPlayer.color);
+        const allHome = playerPawns.filter(p => p.position === homePos).length === 4;
+
+        if (allHome) {
+            const pairs = { red: 'yellow', yellow: 'red', blue: 'green', green: 'blue' };
+            allowedColor = pairs[movingPlayer.color];
+        }
+    }
     
     // Check if the sender is exactly the moving player
     if (session.playerId === movingPlayer._id.toString()) {
-        return pawn.color === movingPlayer.color;
+        return pawn.color === allowedColor;
     }
     
     // Check if the sender is the Admin and the moving player is a Local Player
     if (room.adminId === session.playerId && movingPlayer.name.startsWith('Local Player')) {
-        return pawn.color === movingPlayer.color;
+        return pawn.color === allowedColor;
     }
     
     return false;

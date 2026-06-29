@@ -17,6 +17,7 @@ const RoomSchema = new mongoose.Schema({
     adminId: String,
     isPaused: { type: Boolean, default: false },
     timerEnabled: { type: Boolean, default: true },
+    teamMode: { type: Boolean, default: false },
     players: [PlayerSchema],
     winner: { type: String, default: null },
     pawns: {
@@ -38,6 +39,13 @@ const RoomSchema = new mongoose.Schema({
     },
 });
 
+RoomSchema.methods.isTeammate = function (color1, color2) {
+    if (color1 === color2) return true;
+    if (!this.teamMode) return false;
+    const pairs = { red: 'yellow', yellow: 'red', blue: 'green', green: 'blue' };
+    return pairs[color1] === color2;
+};
+
 RoomSchema.methods.beatPawns = function (position, attackingPawnColor) {
     const safeSpots = [16, 24, 29, 37, 42, 50, 55, 63];
     if (safeSpots.includes(position)) return false;
@@ -45,16 +53,30 @@ RoomSchema.methods.beatPawns = function (position, attackingPawnColor) {
     let cut = false;
     const pawnsOnPosition = this.pawns.filter(pawn => pawn.position === position);
 
-    // Group pawns on this position by color to check for blocks (2+ pawns of same color)
-    const colorCounts = {};
+    // Group pawns on this position by team to check for blocks
+    const teamCounts = { red_yellow: 0, blue_green: 0 };
+    
     pawnsOnPosition.forEach(pawn => {
-        colorCounts[pawn.color] = (colorCounts[pawn.color] || 0) + 1;
+        if (pawn.color === 'red' || pawn.color === 'yellow') teamCounts.red_yellow++;
+        if (pawn.color === 'blue' || pawn.color === 'green') teamCounts.blue_green++;
     });
 
     pawnsOnPosition.forEach(pawn => {
-        if (pawn.color !== attackingPawnColor) {
-            // If there are 2 or more pawns of this color, they form a safe block and cannot be killed
-            if (colorCounts[pawn.color] >= 2) {
+        if (!this.isTeammate(pawn.color, attackingPawnColor)) {
+            const isRedYellow = pawn.color === 'red' || pawn.color === 'yellow';
+            const pawnTeamCount = isRedYellow ? teamCounts.red_yellow : teamCounts.blue_green;
+            
+            // If there are 2 or more pawns of this team (and teamMode is handled correctly), they form a safe block and cannot be killed
+            // Wait, if teamMode is OFF, blocks are only formed by EXACT same color.
+            let hasBlock = false;
+            if (this.teamMode) {
+                hasBlock = pawnTeamCount >= 2;
+            } else {
+                const sameColorCount = pawnsOnPosition.filter(p => p.color === pawn.color).length;
+                hasBlock = sameColorCount >= 2;
+            }
+
+            if (hasBlock) {
                 return; 
             }
             const index = this.getPawnIndex(pawn._id);
@@ -68,12 +90,30 @@ RoomSchema.methods.beatPawns = function (position, attackingPawnColor) {
 RoomSchema.methods.changeMovingPlayer = function () {
     if (this.winner) return;
     const playerIndex = this.players.findIndex(player => player.nowMoving === true);
-    this.players[playerIndex].nowMoving = false;
-    this.players[playerIndex].consecutiveSixes = 0;
-    if (playerIndex + 1 === this.players.length) {
-        this.players[0].nowMoving = true;
+    const movingPlayer = this.players[playerIndex];
+    movingPlayer.nowMoving = false;
+    movingPlayer.consecutiveSixes = 0;
+    
+    const clockwiseOrder = ['red', 'green', 'yellow', 'blue'];
+    let currentIndex = clockwiseOrder.indexOf(movingPlayer.color);
+    
+    let nextPlayer = null;
+    let iterations = 0;
+    while (!nextPlayer && iterations < 4) {
+        currentIndex = (currentIndex + 1) % 4;
+        const nextColor = clockwiseOrder[currentIndex];
+        nextPlayer = this.players.find(p => p.color === nextColor);
+        iterations++;
+    }
+    
+    if (nextPlayer) {
+        nextPlayer.nowMoving = true;
     } else {
-        this.players[playerIndex + 1].nowMoving = true;
+        if (playerIndex + 1 === this.players.length) {
+            this.players[0].nowMoving = true;
+        } else {
+            this.players[playerIndex + 1].nowMoving = true;
+        }
     }
     this.nextMoveTime = this.timerEnabled && !this.isPaused ? Date.now() + MOVE_TIME : null;
     this.rolledNumber = null;
@@ -84,14 +124,62 @@ RoomSchema.methods.changeMovingPlayer = function () {
 };
 
 RoomSchema.methods.movePawn = function (pawn) {
+    const oldPosition = pawn.position;
     const newPositionOfMovedPawn = pawn.getPositionAfterMove(this.rolledNumber);
     this.changePositionOfPawn(pawn, newPositionOfMovedPawn);
     this.beatPawns(newPositionOfMovedPawn, pawn.color);
+
+    // Team Mode Trap Mechanic
+    const safeSpots = [16, 24, 29, 37, 42, 50, 55, 63];
+    if (this.teamMode && oldPosition !== pawn.basePos && !safeSpots.includes(oldPosition)) {
+        const pawnsOnOld = this.pawns.filter(p => p.position === oldPosition);
+        if (pawnsOnOld.length > 0) {
+            const teamCounts = { red_yellow: 0, blue_green: 0 };
+            pawnsOnOld.forEach(p => {
+                if (p.color === 'red' || p.color === 'yellow') teamCounts.red_yellow++;
+                if (p.color === 'blue' || p.color === 'green') teamCounts.blue_green++;
+            });
+
+            // If there's a mix of teams, someone might have lost their shield
+            if (teamCounts.red_yellow > 0 && teamCounts.blue_green > 0) {
+                const isMoverRedYellow = pawn.color === 'red' || pawn.color === 'yellow';
+                // The team that just moved a pawn away loses their shield if they drop to 1 pawn
+                if (isMoverRedYellow && teamCounts.red_yellow === 1) {
+                    pawnsOnOld.filter(p => p.color === 'red' || p.color === 'yellow').forEach(p => {
+                        const index = this.getPawnIndex(p._id);
+                        this.pawns[index].position = this.pawns[index].basePos;
+                    });
+                } else if (!isMoverRedYellow && teamCounts.blue_green === 1) {
+                    pawnsOnOld.filter(p => p.color === 'blue' || p.color === 'green').forEach(p => {
+                        const index = this.getPawnIndex(p._id);
+                        this.pawns[index].position = this.pawns[index].basePos;
+                    });
+                }
+            }
+        }
+    }
 };
 
 RoomSchema.methods.getPawnsThatCanMove = function () {
     const movingPlayer = this.getCurrentlyMovingPlayer();
-    const playerPawns = this.getPlayerPawns(movingPlayer.color);
+    let playerPawns = this.getPlayerPawns(movingPlayer.color);
+
+    if (this.teamMode) {
+        const isRed = movingPlayer.color === 'red';
+        const isBlue = movingPlayer.color === 'blue';
+        const isGreen = movingPlayer.color === 'green';
+        const isYellow = movingPlayer.color === 'yellow';
+
+        const homePos = isRed ? 73 : isBlue ? 79 : isGreen ? 85 : 91;
+        const allHome = playerPawns.filter(p => p.position === homePos).length === 4;
+
+        if (allHome) {
+            const pairs = { red: 'yellow', yellow: 'red', blue: 'green', green: 'blue' };
+            const teammateColor = pairs[movingPlayer.color];
+            playerPawns = this.getPlayerPawns(teammateColor);
+        }
+    }
+
     return playerPawns.filter(pawn => pawn.canMove(this.rolledNumber));
 };
 
@@ -124,18 +212,22 @@ RoomSchema.methods.endGame = function (winner) {
 };
 
 RoomSchema.methods.getWinner = function () {
-    if (this.pawns.filter(pawn => pawn.color === 'red' && pawn.position === 73).length === 4) {
-        return 'red';
+    const redDone = this.pawns.filter(pawn => pawn.color === 'red' && pawn.position === 73).length === 4;
+    const blueDone = this.pawns.filter(pawn => pawn.color === 'blue' && pawn.position === 79).length === 4;
+    const greenDone = this.pawns.filter(pawn => pawn.color === 'green' && pawn.position === 85).length === 4;
+    const yellowDone = this.pawns.filter(pawn => pawn.color === 'yellow' && pawn.position === 91).length === 4;
+
+    if (this.teamMode) {
+        if (redDone && yellowDone) return 'red & yellow';
+        if (blueDone && greenDone) return 'blue & green';
+        return null;
     }
-    if (this.pawns.filter(pawn => pawn.color === 'blue' && pawn.position === 79).length === 4) {
-        return 'blue';
-    }
-    if (this.pawns.filter(pawn => pawn.color === 'green' && pawn.position === 85).length === 4) {
-        return 'green';
-    }
-    if (this.pawns.filter(pawn => pawn.color === 'yellow' && pawn.position === 91).length === 4) {
-        return 'yellow';
-    }
+
+    if (redDone) return 'red';
+    if (blueDone) return 'blue';
+    if (greenDone) return 'green';
+    if (yellowDone) return 'yellow';
+    
     return null;
 };
 

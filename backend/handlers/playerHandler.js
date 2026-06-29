@@ -123,9 +123,21 @@ module.exports = socket => {
         }
     };
 
+    const handleToggleTeamMode = async () => {
+        const room = await getRoom(req.session.roomId);
+        if (!room || room.started) return;
+        if (room.adminId !== req.session.playerId) return;
+
+        room.teamMode = !room.teamMode;
+        await updateRoom(room);
+        socket.to(room._id.toString()).emit('room:data', JSON.stringify(room));
+        socket.emit('room:data', JSON.stringify(room));
+    };
+
     socket.on('player:login', handleLogin);
     socket.on('player:ready', handleReady);
     socket.on('player:exit', handleExit);
     socket.on('room:addLocalPlayer', handleAddLocalPlayer);
     socket.on('room:changeColor', handleChangeColor);
+    socket.on('room:toggleTeamMode', handleToggleTeamMode);
 };

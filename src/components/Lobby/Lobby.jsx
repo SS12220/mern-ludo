@@ -4,7 +4,7 @@ import styles from './Lobby.module.css';
 
 const ALL_COLORS = ['red', 'blue', 'green', 'yellow'];
 
-const Lobby = ({ players, adminId }) => {
+const Lobby = ({ players, adminId, teamMode }) => {
     const context = useContext(PlayerDataContext);
     const socket = useContext(SocketContext);
 
@@ -18,6 +18,20 @@ const Lobby = ({ players, adminId }) => {
     return (
         <div className={styles.lobbyContainer}>
             <h1 className={styles.title}>Waiting Room</h1>
+
+            {isAdmin && (
+                <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                    <label style={{ color: 'white', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                        <input 
+                            type="checkbox" 
+                            checked={teamMode} 
+                            onChange={() => socket.emit('room:toggleTeamMode')}
+                            style={{ transform: 'scale(1.5)', cursor: 'pointer' }}
+                        />
+                        Enable 2v2 Team Mode (Red/Yellow vs Blue/Green)
+                    </label>
+                </div>
+            )}
             
             <div className={styles.playersList}>
                 {players.map((player, index) => {

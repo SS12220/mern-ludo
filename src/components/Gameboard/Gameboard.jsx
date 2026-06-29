@@ -29,6 +29,7 @@ const Gameboard = () => {
     const [adminId, setAdminId] = useState(null);
     const [isPaused, setIsPaused] = useState(false);
     const [timerEnabled, setTimerEnabled] = useState(true);
+    const [teamMode, setTeamMode] = useState(false);
 
     useEffect(() => {
         socket.emit('room:data', context.roomId);
@@ -59,6 +60,7 @@ const Gameboard = () => {
             setAdminId(data.adminId);
             setIsPaused(data.isPaused);
             setTimerEnabled(data.timerEnabled);
+            setTeamMode(data.teamMode);
         });
 
         socket.on('game:winner', winner => {
@@ -81,7 +83,7 @@ const Gameboard = () => {
             {pawns.length === 16 ? (
                 <div className='container'>
                     {!started ? (
-                        <Lobby players={players} adminId={adminId} />
+                        <Lobby players={players} adminId={adminId} teamMode={teamMode} />
                     ) : (
                         <>
                             <Navbar

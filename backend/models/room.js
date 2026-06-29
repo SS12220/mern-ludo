@@ -44,8 +44,19 @@ RoomSchema.methods.beatPawns = function (position, attackingPawnColor) {
 
     let cut = false;
     const pawnsOnPosition = this.pawns.filter(pawn => pawn.position === position);
+
+    // Group pawns on this position by color to check for blocks (2+ pawns of same color)
+    const colorCounts = {};
+    pawnsOnPosition.forEach(pawn => {
+        colorCounts[pawn.color] = (colorCounts[pawn.color] || 0) + 1;
+    });
+
     pawnsOnPosition.forEach(pawn => {
         if (pawn.color !== attackingPawnColor) {
+            // If there are 2 or more pawns of this color, they form a safe block and cannot be killed
+            if (colorCounts[pawn.color] >= 2) {
+                return; 
+            }
             const index = this.getPawnIndex(pawn._id);
             this.pawns[index].position = this.pawns[index].basePos;
             cut = true;

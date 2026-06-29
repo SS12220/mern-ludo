@@ -45,13 +45,19 @@ const makeRandomMove = async roomId => {
 };
 
 const isMoveValid = (session, pawn, room) => {
-    if (session.color !== pawn.color) {
-        return false;
+    const movingPlayer = room.getCurrentlyMovingPlayer();
+    
+    // Check if the sender is exactly the moving player
+    if (session.playerId === movingPlayer._id.toString()) {
+        return pawn.color === movingPlayer.color;
     }
-    if (session.playerId !== room.getCurrentlyMovingPlayer()._id.toString()) {
-        return false;
+    
+    // Check if the sender is the Admin and the moving player is a Local Player
+    if (room.adminId === session.playerId && movingPlayer.name.startsWith('Local Player')) {
+        return pawn.color === movingPlayer.color;
     }
-    return true;
+    
+    return false;
 };
 
 module.exports = { rollDice, makeRandomMove, isMoveValid };

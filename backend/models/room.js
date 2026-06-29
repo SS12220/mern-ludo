@@ -14,6 +14,9 @@ const RoomSchema = new mongoose.Schema({
     full: { type: Boolean, default: false },
     nextMoveTime: Number,
     rolledNumber: Number,
+    adminId: String,
+    isPaused: { type: Boolean, default: false },
+    timerEnabled: { type: Boolean, default: true },
     players: [PlayerSchema],
     winner: { type: String, default: null },
     pawns: {
@@ -60,10 +63,12 @@ RoomSchema.methods.changeMovingPlayer = function () {
     } else {
         this.players[playerIndex + 1].nowMoving = true;
     }
-    this.nextMoveTime = Date.now() + MOVE_TIME;
+    this.nextMoveTime = this.timerEnabled && !this.isPaused ? Date.now() + MOVE_TIME : null;
     this.rolledNumber = null;
     timeoutManager.clear(this._id.toString());
-    timeoutManager.set(makeRandomMove, MOVE_TIME, this._id.toString());
+    if (this.timerEnabled && !this.isPaused) {
+        timeoutManager.set(makeRandomMove, MOVE_TIME, this._id.toString());
+    }
 };
 
 RoomSchema.methods.movePawn = function (pawn) {
@@ -89,10 +94,12 @@ RoomSchema.methods.canStartGame = function () {
 
 RoomSchema.methods.startGame = function () {
     this.started = true;
-    this.nextMoveTime = Date.now() + MOVE_TIME;
+    this.nextMoveTime = this.timerEnabled && !this.isPaused ? Date.now() + MOVE_TIME : null;
     this.players.forEach(player => (player.ready = true));
     this.players[0].nowMoving = true;
-    timeoutManager.set(makeRandomMove, MOVE_TIME, this._id.toString());
+    if (this.timerEnabled && !this.isPaused) {
+        timeoutManager.set(makeRandomMove, MOVE_TIME, this._id.toString());
+    }
 };
 
 RoomSchema.methods.endGame = function (winner) {
@@ -139,6 +146,9 @@ RoomSchema.methods.addPlayer = function (name, id) {
         ready: false,
         color: COLORS[this.players.length],
     });
+    if (this.players.length === 1) {
+        this.adminId = this.players[0]._id.toString();
+    }
 };
 
 RoomSchema.methods.getPawnIndex = function (pawnId) {

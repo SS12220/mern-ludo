@@ -4,6 +4,7 @@ import { PlayerDataContext, SocketContext } from '../../App';
 import useSocketData from '../../hooks/useSocketData';
 import Map from './Map/Map';
 import Navbar from '../Navbar/Navbar';
+import Lobby from '../Lobby/Lobby';
 import Overlay from '../Overlay/Overlay';
 import styles from './Gameboard.module.css';
 import trophyImage from '../../images/trophy.webp';
@@ -23,6 +24,11 @@ const Gameboard = () => {
     const [movingPlayer, setMovingPlayer] = useState('red');
 
     const [winner, setWinner] = useState(null);
+    
+    // Admin state
+    const [adminId, setAdminId] = useState(null);
+    const [isPaused, setIsPaused] = useState(false);
+    const [timerEnabled, setTimerEnabled] = useState(true);
 
     useEffect(() => {
         socket.emit('room:data', context.roomId);
@@ -36,7 +42,7 @@ const Gameboard = () => {
             // Checks if client is currently moving player by session ID
             const nowMovingPlayer = data.players.find(player => player.nowMoving === true);
             if (nowMovingPlayer) {
-                if (nowMovingPlayer._id === context.playerId) {
+                if (nowMovingPlayer._id === context.playerId || (data.adminId === context.playerId && nowMovingPlayer.name.startsWith('Local Player'))) {
                     setNowMoving(true);
                 } else {
                     setNowMoving(false);
@@ -50,6 +56,9 @@ const Gameboard = () => {
             setPawns(data.pawns);
             setTime(data.nextMoveTime);
             setStarted(data.started);
+            setAdminId(data.adminId);
+            setIsPaused(data.isPaused);
+            setTimerEnabled(data.timerEnabled);
         });
 
         socket.on('game:winner', winner => {
@@ -61,21 +70,34 @@ const Gameboard = () => {
 
     }, [socket, context.playerId, context.roomId, setRolledNumber]);
 
+    const myPlayer = players.find(p => p._id === context.playerId);
+    const myColor = myPlayer ? myPlayer.color : context.color;
+
     return (
         <>
             {pawns.length === 16 ? (
                 <div className='container'>
-                    <Navbar
-                        players={players}
-                        started={started}
-                        time={time}
-                        isReady={isReady}
-                        movingPlayer={movingPlayer}
-                        rolledNumber={rolledNumber}
-                        nowMoving={nowMoving}
-                        ended={winner !== null}
-                    />
-                    <Map pawns={pawns} nowMoving={nowMoving} rolledNumber={rolledNumber} />
+                    {!started ? (
+                        <Lobby players={players} adminId={adminId} />
+                    ) : (
+                        <>
+                            <Navbar
+                                players={players}
+                                started={started}
+                                time={time}
+                                isReady={isReady}
+                                movingPlayer={movingPlayer}
+                                rolledNumber={rolledNumber}
+                                nowMoving={nowMoving}
+                                ended={winner !== null}
+                                adminId={adminId}
+                                isPaused={isPaused}
+                                timerEnabled={timerEnabled}
+                                localColor={myColor}
+                            />
+                            <Map pawns={pawns} nowMoving={nowMoving} rolledNumber={rolledNumber} localColor={myColor} players={players} />
+                        </>
+                    )}
                 </div>
             ) : (
                 <ReactLoading type='spinningBubbles' color='white' height={667} width={375} />

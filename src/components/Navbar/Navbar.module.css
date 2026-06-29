@@ -4,25 +4,32 @@
     flex-direction: row;
     width: 100%;
 }
-.red {
+/* Positional Layouts */
+.posTL {
     margin-bottom: 50px;
     grid-column: 1;
     grid-row: 1;
 }
-.yellow {
+.posTR {
     margin-bottom: 50px;
     flex-flow: row-reverse;
     grid-column: 2;
     grid-row: 1;
 }
-.blue {
+.posBL {
     margin-top: 50px;
     grid-column: 1;
     grid-row: 4;
 }
-.green {
+.posBR {
     margin-top: 50px;
     flex-flow: row-reverse;
     grid-column: 2;
     grid-row: 4;
 }
+
+/* Color Themes (if needed for NameContainer etc) */
+.red {}
+.yellow {}
+.blue {}
+.green {}

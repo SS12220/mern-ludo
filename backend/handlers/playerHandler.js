@@ -75,12 +75,39 @@ module.exports = socket => {
         const oldColor = targetPlayer.color;
         if (oldColor === newColor) return;
 
-        // Find who currently has the newColor and swap with them
-        const otherPlayer = room.players.find(p => p.color === newColor);
-        if (otherPlayer) {
-            otherPlayer.color = oldColor;
+        let sessionColorChanged = false;
+
+        if (room.players.length === 2) {
+            const oppositeColors = { red: 'green', green: 'red', blue: 'yellow', yellow: 'blue' };
+            const otherPlayerInRoom = room.players.find(p => p._id.toString() !== targetPlayerId);
+            
+            targetPlayer.color = newColor;
+            if (otherPlayerInRoom) {
+                otherPlayerInRoom.color = oppositeColors[newColor];
+            }
+            
+            // Check if admin session color changed
+            const adminPlayer = room.players.find(p => p._id.toString() === req.session.playerId);
+            if (adminPlayer && req.session.color !== adminPlayer.color) {
+                req.session.color = adminPlayer.color;
+                sessionColorChanged = true;
+            }
+        } else {
+            // Find who currently has the newColor and swap with them
+            const otherPlayerWithNewColor = room.players.find(p => p.color === newColor && p._id.toString() !== targetPlayerId);
+            if (otherPlayerWithNewColor) {
+                otherPlayerWithNewColor.color = oldColor;
+            }
+            targetPlayer.color = newColor;
+
+            if (targetPlayerId === req.session.playerId) {
+                req.session.color = newColor;
+                sessionColorChanged = true;
+            } else if (otherPlayerWithNewColor && otherPlayerWithNewColor._id.toString() === req.session.playerId) {
+                req.session.color = oldColor;
+                sessionColorChanged = true;
+            }
         }
-        targetPlayer.color = newColor;
 
         await updateRoom(room);
         
@@ -89,13 +116,7 @@ module.exports = socket => {
         // Emit to the sender as well so their UI immediately reflects the new room data
         socket.emit('room:data', JSON.stringify(room));
 
-        // Update the session safely if the admin's own color changed
-        if (targetPlayerId === req.session.playerId || (otherPlayer && otherPlayer._id.toString() === req.session.playerId)) {
-            if (targetPlayerId === req.session.playerId) {
-                req.session.color = newColor;
-            } else {
-                req.session.color = oldColor;
-            }
+        if (sessionColorChanged) {
             req.session.save(() => {
                 socket.emit('player:data', JSON.stringify(req.session));
             });

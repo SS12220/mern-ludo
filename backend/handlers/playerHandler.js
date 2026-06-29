@@ -78,7 +78,7 @@ module.exports = socket => {
         let sessionColorChanged = false;
 
         if (room.players.length === 2) {
-            const oppositeColors = { red: 'green', green: 'red', blue: 'yellow', yellow: 'blue' };
+            const oppositeColors = { red: 'yellow', yellow: 'red', blue: 'green', green: 'blue' };
             const otherPlayerInRoom = room.players.find(p => p._id.toString() !== targetPlayerId);
             
             targetPlayer.color = newColor;

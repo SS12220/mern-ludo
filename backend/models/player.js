@@ -8,6 +8,7 @@ const PlayerSchema = new Schema({
     color: String,
     ready: { type: Boolean, default: false },
     nowMoving: { type: Boolean, default: false },
+    consecutiveSixes: { type: Number, default: 0 },
 });
 
 PlayerSchema.methods.changeReadyStatus = function () {

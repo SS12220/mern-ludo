@@ -38,11 +38,27 @@ module.exports = socket => {
     };
 
     const handleRollDice = async () => {
-        const rolledNumber = rollDice();
-        sendToPlayersRolledNumber(req.session.roomId, rolledNumber);
-        const room = await updateRoom({ _id: req.session.roomId, rolledNumber: rolledNumber });
-        
+        const room = await getRoom(req.session.roomId);
         const movingPlayer = room.getCurrentlyMovingPlayer();
+
+        let rolledNumber = rollDice();
+        
+        // Prevent rolling three 6s in a row
+        if (movingPlayer.consecutiveSixes >= 2) {
+            while (rolledNumber === 6) {
+                rolledNumber = rollDice();
+            }
+        }
+        
+        if (rolledNumber === 6) {
+            movingPlayer.consecutiveSixes += 1;
+        } else {
+            movingPlayer.consecutiveSixes = 0;
+        }
+
+        sendToPlayersRolledNumber(req.session.roomId, rolledNumber);
+        room.rolledNumber = rolledNumber;
+        await updateRoom(room);
         
         if (!movingPlayer.canMove(room, rolledNumber)) {
             setTimeout(async () => {
@@ -120,9 +136,9 @@ module.exports = socket => {
 
         timeoutManager.clear(room._id.toString());
         
-        // Notify everyone to exit
-        socket.to(room._id.toString()).emit('redirect');
-        socket.emit('redirect');
+        // Notify everyone to exit properly, which destroys their individual sessions
+        socket.to(room._id.toString()).emit('game:stopped');
+        socket.emit('game:stopped');
 
         // Optional: delete room from DB if we want, but for now we just redirect them, which will naturally clear their sessions on reload if room is handled.
         // Assuming there's a Room.findByIdAndDelete, but let's just use redirect for now.

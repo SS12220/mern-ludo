@@ -21,6 +21,9 @@ function App() {
                 setRedirect(true);
             }
         });
+        socket.on('redirect', () => {
+            window.location.href = '/';
+        });
         setPlayerSocket(socket);
     }, []);
 

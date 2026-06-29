@@ -69,6 +69,7 @@ RoomSchema.methods.changeMovingPlayer = function () {
     if (this.winner) return;
     const playerIndex = this.players.findIndex(player => player.nowMoving === true);
     this.players[playerIndex].nowMoving = false;
+    this.players[playerIndex].consecutiveSixes = 0;
     if (playerIndex + 1 === this.players.length) {
         this.players[0].nowMoving = true;
     } else {

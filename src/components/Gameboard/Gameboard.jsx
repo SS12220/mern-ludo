@@ -67,6 +67,9 @@ const Gameboard = () => {
         socket.on('redirect', () => {
             window.location.reload();
         });
+        socket.on('game:stopped', () => {
+            socket.emit('player:exit');
+        });
 
     }, [socket, context.playerId, context.roomId, setRolledNumber]);
 

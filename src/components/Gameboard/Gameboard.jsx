@@ -73,10 +73,27 @@ const Gameboard = () => {
     const [isPaused, setIsPaused] = useState(false);
     const [timerEnabled, setTimerEnabled] = useState(true);
     const [teamMode, setTeamMode] = useState(false);
+    const [showAdminMenu, setShowAdminMenu] = useState(false);
+
+    const isAdmin = !!(adminId && context && context.playerId && context.playerId === adminId);
+
+    const handleReset = () => {
+        if (window.confirm("Are you sure you want to reset the game back to the Lobby?")) {
+            socket.emit('game:reset');
+        }
+    };
+
+    const handleStopHosting = () => {
+        if (window.confirm("Are you sure you want to stop hosting? Everyone will be disconnected.")) {
+            socket.emit('game:stopHosting');
+        }
+    };
 
     useEffect(() => {
+        if (!socket) return;
         socket.emit('room:data', context.roomId);
-        socket.on('room:data', data => {
+
+        const handleRoomData = data => {
             data = JSON.parse(data);
             if (data.players == null) return;
             // Filling navbar with empty player nick container
@@ -94,7 +111,9 @@ const Gameboard = () => {
                 setMovingPlayer(nowMovingPlayer.color);
             }
             const currentPlayer = data.players.find(player => player._id === context.playerId);
-            setIsReady(currentPlayer.ready);
+            if (currentPlayer) {
+                setIsReady(currentPlayer.ready);
+            }
             setRolledNumber(data.rolledNumber);
             setPlayers(data.players);
             setPawns(data.pawns);
@@ -104,23 +123,40 @@ const Gameboard = () => {
             setIsPaused(data.isPaused);
             setTimerEnabled(data.timerEnabled);
             setTeamMode(data.teamMode);
-        });
+        };
 
-        socket.on('game:winner', winner => {
+        const handleWinner = winner => {
             setWinner(winner);
-        });
-        socket.on('redirect', () => {
+        };
+
+        const handleRedirect = () => {
             window.location.reload();
-        });
-        socket.on('game:stopped', () => {
+        };
+
+        const handleStopped = () => {
             socket.emit('player:exit');
-        });
-        socket.on('room:kicked', kickedPlayerId => {
+        };
+
+        const handleKicked = kickedPlayerId => {
             if (context.playerId === kickedPlayerId) {
                 alert("You have been kicked from the lobby.");
                 socket.emit('player:exit');
             }
-        });
+        };
+
+        socket.on('room:data', handleRoomData);
+        socket.on('game:winner', handleWinner);
+        socket.on('redirect', handleRedirect);
+        socket.on('game:stopped', handleStopped);
+        socket.on('room:kicked', handleKicked);
+
+        return () => {
+            socket.off('room:data', handleRoomData);
+            socket.off('game:winner', handleWinner);
+            socket.off('redirect', handleRedirect);
+            socket.off('game:stopped', handleStopped);
+            socket.off('room:kicked', handleKicked);
+        };
 
     }, [socket, context.playerId, context.roomId, setRolledNumber]);
 
@@ -156,6 +192,42 @@ const Gameboard = () => {
                     ⛶ 
                 </button>
             </div>
+
+            {/* Admin Controls Menu (Viewport Anchored) */}
+            {isAdmin && (
+                <div style={{ position: 'fixed', left: '10px', top: '10px', zIndex: 9999 }}>
+                    <button 
+                        onClick={() => setShowAdminMenu(!showAdminMenu)} 
+                        style={{ padding: '8px 12px', cursor: 'pointer', background: 'rgba(0, 0, 0, 0.5)', color: '#fff', border: '1px solid #555', borderRadius: '8px', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', backdropFilter: 'blur(5px)' }}>
+                        ☰
+                    </button>
+                    {showAdminMenu && (
+                        <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '8px', background: '#222', border: '1px solid #444', borderRadius: '8px', display: 'flex', flexDirection: 'column', width: '180px', zIndex: 10000, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+                            {!started && players.filter(p => p.name !== '...').length > 1 && (
+                                <button onClick={() => { socket.emit('game:start'); setShowAdminMenu(false); }} style={{ padding: '12px', cursor: 'pointer', background: '#28a745', color: '#fff', border: 'none', textAlign: 'left', borderBottom: '1px solid #444', fontWeight: 'bold' }}>
+                                    Start Game
+                                </button>
+                            )}
+                            {started && !winner && (
+                                <>
+                                    <button onClick={() => { socket.emit('game:pause'); setShowAdminMenu(false); }} style={{ padding: '12px', cursor: 'pointer', background: 'none', color: '#fff', border: 'none', textAlign: 'left', borderBottom: '1px solid #444' }}>
+                                        {isPaused ? '▶ Resume Game' : '⏸ Pause Game'}
+                                    </button>
+                                    <button onClick={() => { socket.emit('game:toggleTimer'); setShowAdminMenu(false); }} style={{ padding: '12px', cursor: 'pointer', background: 'none', color: '#fff', border: 'none', textAlign: 'left', borderBottom: '1px solid #444' }}>
+                                        {timerEnabled ? '⏱ Disable Timer' : '⏱ Enable Timer'}
+                                    </button>
+                                    <button onClick={() => { handleReset(); setShowAdminMenu(false); }} style={{ padding: '12px', cursor: 'pointer', background: 'none', color: '#fff', border: 'none', textAlign: 'left', borderBottom: '1px solid #444' }}>
+                                        ↺ Reset to Lobby
+                                    </button>
+                                    <button onClick={() => { handleStopHosting(); setShowAdminMenu(false); }} style={{ padding: '12px', cursor: 'pointer', background: 'none', color: '#ff4444', border: 'none', textAlign: 'left' }}>
+                                        ⏹ Stop Hosting
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
             
             {pawns.length === 16 ? (
                 <div className='container' style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}>

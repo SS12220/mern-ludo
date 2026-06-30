@@ -1,12 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import AnimatedOverlay from './AnimatedOverlay/AnimatedOverlay';
+import { NOT_READY_COLOR } from '../../../constants/colors';
 import styles from './NameContainer.module.css';
 
 const NameContainer = ({ player, started, position }) => {
     return (
         <div className={`${styles.container} ${styles[position]}`}>
-            <span>{player.name}</span>
+            <span>{player ? player.name : ''}</span>
         </div>
     );
 };

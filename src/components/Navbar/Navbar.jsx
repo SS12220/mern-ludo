@@ -16,29 +16,18 @@ const Navbar = ({ players, started, time, isReady, rolledNumber, nowMoving, movi
         movingPlayer,
     };
 
-    const isAdmin = context.playerId === adminId;
-    const [showAdminMenu, setShowAdminMenu] = React.useState(false);
+    const isAdmin = !!(adminId && context && context.playerId && context.playerId === adminId);
+    const currentLocalColor = localColor || (context && context.color) || 'blue';
 
-    const handleReset = () => {
-        if (window.confirm("Are you sure you want to reset the game back to the Lobby?")) {
-            socket.emit('game:reset');
-        }
-    };
 
-    const handleStopHosting = () => {
-        if (window.confirm("Are you sure you want to stop hosting? Everyone will be disconnected.")) {
-            socket.emit('game:stopHosting');
-        }
-    };
-
-    const getPositionalClass = (targetColor, localColor) => {
+    const getPositionalClass = (targetColor, currentLocalColor) => {
         const layouts = {
             blue: { red: 'TL', green: 'TR', blue: 'BL', yellow: 'BR' },
             red: { red: 'BL', green: 'TL', blue: 'BR', yellow: 'TR' },
             green: { red: 'BR', green: 'BL', blue: 'TR', yellow: 'TL' },
             yellow: { red: 'TR', green: 'BR', blue: 'TL', yellow: 'BL' }
         };
-        const currentLayout = layouts[localColor] || layouts.blue;
+        const currentLayout = layouts[currentLocalColor] || layouts.blue;
         return currentLayout[targetColor] || 'TL';
     };
 
@@ -56,7 +45,7 @@ const Navbar = ({ players, started, time, isReady, rolledNumber, nowMoving, movi
     const renderDice = (position) => {
         const playerIndex = players.findIndex((p, i) => {
             const assignedColor = finalColors[i];
-            return getPositionalClass(assignedColor, localColor) === position;
+            return getPositionalClass(assignedColor, currentLocalColor) === position;
         });
 
         if (playerIndex === -1) return <div className={styles.playerContainer}></div>;
@@ -82,7 +71,7 @@ const Navbar = ({ players, started, time, isReady, rolledNumber, nowMoving, movi
                 )}
 
                 {started && !ended && !isLocalSlotEmpty ? <Dice playerColor={assignedColor} {...diceProps} time={time} /> : null}
-                {localColor === player.color && !started && !isAdmin && !player.name.startsWith('Local Player') ? <ReadyButton isReady={isReady} /> : null}
+                {currentLocalColor === player.color && !started && !isAdmin && !player.name.startsWith('Local Player') ? <ReadyButton isReady={isReady} /> : null}
             </div>
         );
     };
@@ -90,7 +79,7 @@ const Navbar = ({ players, started, time, isReady, rolledNumber, nowMoving, movi
     const renderName = (position) => {
         const playerIndex = players.findIndex((p, i) => {
             const assignedColor = finalColors[i];
-            return getPositionalClass(assignedColor, localColor) === position;
+            return getPositionalClass(assignedColor, currentLocalColor) === position;
         });
 
         if (playerIndex === -1) return null;
@@ -105,41 +94,7 @@ const Navbar = ({ players, started, time, isReady, rolledNumber, nowMoving, movi
 
     return (
         <div className={styles.gameLayout}>
-            {/* Admin Game Controls */}
-            {isAdmin && (
-                <div className={styles.adminControlsOverlay} style={{ left: '10px', right: 'auto', top: '10px' }}>
-                    <button 
-                        onClick={() => setShowAdminMenu(!showAdminMenu)} 
-                        style={{ padding: '8px 12px', cursor: 'pointer', background: '#333', color: '#fff', border: '1px solid #555', borderRadius: '8px', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                        ☰ 
-                    </button>
-                    {showAdminMenu && (
-                        <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '8px', background: '#222', border: '1px solid #444', borderRadius: '8px', display: 'flex', flexDirection: 'column', width: '180px', zIndex: 1000, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
-                            {!started && players.length > 1 && (
-                                <button onClick={() => { socket.emit('game:start'); setShowAdminMenu(false); }} style={{ padding: '12px', cursor: 'pointer', background: '#28a745', color: '#fff', border: 'none', textAlign: 'left', borderBottom: '1px solid #444', fontWeight: 'bold' }}>
-                                    Start Game
-                                </button>
-                            )}
-                            {started && !ended && (
-                                <>
-                                    <button onClick={() => { socket.emit('game:pause'); setShowAdminMenu(false); }} style={{ padding: '12px', cursor: 'pointer', background: 'none', color: '#fff', border: 'none', textAlign: 'left', borderBottom: '1px solid #444' }}>
-                                        {isPaused ? '▶ Resume Game' : '⏸ Pause Game'}
-                                    </button>
-                                    <button onClick={() => { socket.emit('game:toggleTimer'); setShowAdminMenu(false); }} style={{ padding: '12px', cursor: 'pointer', background: 'none', color: '#fff', border: 'none', textAlign: 'left', borderBottom: '1px solid #444' }}>
-                                        {timerEnabled ? '⏱ Disable Timer' : '⏱ Enable Timer'}
-                                    </button>
-                                    <button onClick={() => { handleReset(); setShowAdminMenu(false); }} style={{ padding: '12px', cursor: 'pointer', background: 'none', color: '#fff', border: 'none', textAlign: 'left', borderBottom: '1px solid #444' }}>
-                                        ↺ Reset to Lobby
-                                    </button>
-                                    <button onClick={() => { handleStopHosting(); setShowAdminMenu(false); }} style={{ padding: '12px', cursor: 'pointer', background: 'none', color: '#ff4444', border: 'none', textAlign: 'left' }}>
-                                        ⏹ Stop Hosting
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                    )}
-                </div>
-            )}
+
 
             <div className={styles.playersRow}>
                 {renderDice('TL')}

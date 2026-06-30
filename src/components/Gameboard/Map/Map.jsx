@@ -402,7 +402,15 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
     return (
         <canvas
             className='canvas-container'
-            style={{ transform: `rotate(${rotationAngle}deg)`, transition: 'transform 0.5s ease', width: '500px', height: '500px' }}
+            style={{ 
+                transform: `rotate(${rotationAngle}deg)`, 
+                transition: 'transform 0.5s ease',
+                width: '100%',
+                height: '100%',
+                maxWidth: '500px',
+                maxHeight: '500px',
+                aspectRatio: '1 / 1'
+            }}
             width={1000}
             height={1000}
             ref={canvasRef}

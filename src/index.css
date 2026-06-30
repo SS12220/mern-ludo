@@ -1,3 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Jua&family=Manrope:wght@200..800&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+
+* {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
 body {
     background: radial-gradient(circle,
             rgba(0, 138, 255, 1) 0%,
@@ -66,9 +72,11 @@ canvas {
 
 .canvas-container {
     width: 100%;
-    max-width: 460px;
-    height: auto;
+    height: 100%;
+    max-width: 500px;
+    max-height: 500px;
     aspect-ratio: 1 / 1;
+    display: block;
 }
 
 input,
@@ -80,6 +88,7 @@ button {
 }
 
 input {
+    font-family: 'Jua', sans-serif;
     width: 100%;
     padding: 12px;
     font-size: 16px;
@@ -103,6 +112,7 @@ input:focus {
 }
 
 button {
+    font-family: 'Jua', sans-serif;
     padding: 12px 20px;
     font-size: 16px;
     border-radius: 8px;

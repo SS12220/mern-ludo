@@ -13,7 +13,8 @@ function App() {
     const [playerSocket, setPlayerSocket] = useState();
     const [redirect, setRedirect] = useState();
     useEffect(() => {
-        const socket = io(`http://${window.location.hostname}:8080`, { withCredentials: true });
+        const hostname = window.location.hostname === 'localhost' ? '127.0.0.1' : window.location.hostname;
+        const socket = io(`http://${hostname}:8080`, { withCredentials: true });
         socket.on('player:data', data => {
             data = JSON.parse(data);
             setPlayerData(data);

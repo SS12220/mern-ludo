@@ -27,16 +27,24 @@ class AudioManager {
     }
 
     play(soundName) {
+        if (process.env.NODE_ENV === 'test') return; // Skip audio in test environment
         if (document.hidden) return; // Prevent backlog audio playing when tab is hidden
         if (this.sounds[soundName]) {
             // Clone the node so we can play overlapping sounds (like fast steps)
             const soundClone = this.sounds[soundName].cloneNode();
             soundClone.volume = 0.7; // Slightly reduce volume
-            soundClone.play().catch(e => {
-                if (e.name !== 'NotAllowedError') {
-                    console.warn('Audio playback failed:', e);
+            try {
+                const playPromise = soundClone.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(e => {
+                        if (e.name !== 'NotAllowedError') {
+                            console.warn('Audio playback failed:', e);
+                        }
+                    });
                 }
-            });
+            } catch (e) {
+                // Ignore audio play failure in test environment
+            }
         }
     }
 }

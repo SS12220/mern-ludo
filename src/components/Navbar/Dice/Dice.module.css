@@ -10,6 +10,8 @@
     height: 100%;
     cursor: pointer;
     display: block;
+    border-radius: 8px;
+    transition: transform 0.15s ease;
 }
 .placeholder {
     width: 100%;
@@ -17,4 +19,51 @@
     border: 2px dashed rgba(255, 255, 255, 0.3);
     border-radius: 8px;
     background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* 2D Breathing Pulse Animation when it's your turn to roll */
+.clickToRoll {
+    animation: pulse2D 1.6s infinite ease-in-out;
+}
+
+.clickToRoll:hover {
+    transform: scale(1.08);
+}
+
+@keyframes pulse2D {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.06);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* 2D Rolling Animation (shake/scaling jitter) */
+.rolling {
+    animation: roll2D 0.5s linear infinite;
+}
+
+@keyframes roll2D {
+    0% {
+        transform: scale(1.1) translate(0, 0) rotate(0deg);
+    }
+    20% {
+        transform: scale(1.15) translate(-2px, 1px) rotate(-3deg);
+    }
+    40% {
+        transform: scale(1.1) translate(1px, -1px) rotate(3deg);
+    }
+    60% {
+        transform: scale(1.15) translate(-1px, -2px) rotate(-2deg);
+    }
+    80% {
+        transform: scale(1.1) translate(2px, 1px) rotate(2deg);
+    }
+    100% {
+        transform: scale(1.1) translate(0, 0) rotate(0deg);
+    }
 }

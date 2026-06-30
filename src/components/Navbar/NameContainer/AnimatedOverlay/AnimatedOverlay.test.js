@@ -9,12 +9,14 @@ describe('AnimatedOverlay component', () => {
     });
 
     it('applies animation delay based on time prop', () => {
-        const timeNow = Date.now();
-        const time = timeNow + 5000;
+        const mockTime = 1620000000000;
+        const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(mockTime);
+        const time = mockTime + 5000;
         render(<AnimatedOverlay time={time} />);
         const overlay = screen.getByTestId('animated-overlay');
-        const expectedDelay = 15 - Math.ceil((time - timeNow) / 1000);
+        const rect = overlay.querySelector('rect');
 
-        expect(overlay).toHaveStyle({ animationDelay: `-${expectedDelay}s` });
+        expect(rect).toHaveStyle({ animationDelay: '-10s' });
+        dateSpy.mockRestore();
     });
 });

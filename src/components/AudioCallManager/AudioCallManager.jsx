@@ -12,7 +12,8 @@ import AgoraRTC, {
 import micOnIcon from '../../Icons/mic-on.svg';
 import micOffIcon from '../../Icons/mic-off.svg';
 
-const appId = process.env.REACT_APP_AGORA_APP_ID || 'YOUR_APP_ID_HERE';
+// Hardcoded temporarily to bypass React .env caching issues
+const appId = 'afc433f5de8749a4b031ebe5228db868';
 
 const AudioCallContent = ({ roomId }) => {
     const [isMuted, setIsMuted] = useState(false);
@@ -24,8 +25,14 @@ const AudioCallContent = ({ roomId }) => {
         token: null,
     }, true);
 
+    console.log("Agora: Trying to join channel:", roomId, "with App ID:", appId);
+
     // Get the local microphone track
-    const { localMicrophoneTrack } = useLocalMicrophoneTrack();
+    const { localMicrophoneTrack, isLoading, error } = useLocalMicrophoneTrack();
+    
+    if (error) {
+        console.error("Agora Mic Error:", error);
+    }
     
     // Publish the track to the channel
     usePublish([localMicrophoneTrack]);

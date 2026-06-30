@@ -3,19 +3,18 @@ import PropTypes from 'prop-types';
 import AnimatedOverlay from './AnimatedOverlay/AnimatedOverlay';
 import styles from './NameContainer.module.css';
 
-const NameContainer = ({ player, time }) => {
+const NameContainer = ({ player, started, position }) => {
     return (
-        <div className={styles.container} style={{ backgroundColor: player.ready ? player.color : 'lightgrey' }}>
-            <p>{player.name}</p>
-            {player.nowMoving ? <AnimatedOverlay time={time} /> : null}
+        <div className={`${styles.container} ${styles[position]}`}>
+            <span>{player.name}</span>
         </div>
     );
 };
 
 NameContainer.propTypes = {
     player: PropTypes.object,
-    time: PropTypes.number,
-    testId: PropTypes.string,
+    started: PropTypes.bool,
+    position: PropTypes.string,
 };
 
 export default NameContainer;

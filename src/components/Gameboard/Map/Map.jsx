@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState, useContext } from 'react';
 import { PlayerDataContext, SocketContext } from '../../../App';
 
-import mapImageSrc from '../../../images/map.jpg';
+import mapImageSrc from '../../../images/New-UI/Board/Board.svg';
 import positionMapCoords from '../positions';
 import pawnImagesSrc from '../../../constants/pawnImages';
+import pawnRingSrc from '../../../images/New-UI/Pawns/Pawn Bottom Ring.svg';
 import canPawnMove from './canPawnMove';
 import getPositionAfterMove from './getPositionAfterMove';
 
@@ -20,6 +21,9 @@ const getRotationAngle = (color) => {
 // Preload images
 const mapImage = new Image();
 mapImage.src = mapImageSrc;
+
+const pawnRingImage = new Image();
+pawnRingImage.src = pawnRingSrc;
 
 const loadedPawnImages = {};
 Object.keys(pawnImagesSrc).forEach(color => {
@@ -103,16 +107,16 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
 
     const paintPawn = (context, pawn, x, y, isValidToMove = false) => {
         const touchableArea = new Path2D();
-        touchableArea.arc(x, y, 12, 0, 2 * Math.PI);
+        touchableArea.arc(x, y, 24, 0, 2 * Math.PI);
 
         if (isValidToMove) {
-            context.beginPath();
-            context.arc(x, y, 18, 0, 2 * Math.PI);
-            context.fillStyle = 'rgba(255, 255, 0, 0.6)';
-            context.shadowBlur = 15;
-            context.shadowColor = 'yellow';
-            context.fill();
-            context.shadowBlur = 0;
+            if (pawnRingImage.complete) {
+                context.save();
+                context.translate(x, y);
+                context.rotate(-rotationAngle * Math.PI / 180);
+                context.drawImage(pawnRingImage, -14, -14, 28, 28);
+                context.restore();
+            }
         }
 
         const image = loadedPawnImages[pawn.color];
@@ -120,7 +124,7 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
             context.save();
             context.translate(x, y);
             context.rotate(-rotationAngle * Math.PI / 180);
-            context.drawImage(image, -17, -15, 35, 30);
+            context.drawImage(image, -12, -24, 24, 30);
             context.restore();
         }
         return touchableArea;
@@ -129,8 +133,18 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
     const handleCanvasClick = event => {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
-        const cursorX = event.nativeEvent.offsetX;
-        const cursorY = event.nativeEvent.offsetY;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const cursorX_screen = (event.clientX - rect.left) * scaleX;
+        const cursorY_screen = (event.clientY - rect.top) * scaleY;
+
+        const angleRad = -(rotationAngle * Math.PI) / 180;
+        const dx = cursorX_screen - 230;
+        const dy = cursorY_screen - 230;
+        
+        const cursorX = 230 + dx * Math.cos(angleRad) - dy * Math.sin(angleRad);
+        const cursorY = 230 + dx * Math.sin(angleRad) + dy * Math.cos(angleRad);
         
         for (const pawn of visualPawnsRef.current) {
             if (ctx.isPointInPath(pawn.touchableArea, cursorX, cursorY)) {
@@ -144,8 +158,18 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
         if (!nowMoving || !effectiveRolledNumber) return;
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
-        const x = event.nativeEvent.offsetX;
-        const y = event.nativeEvent.offsetY;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const cursorX_screen = (event.clientX - rect.left) * scaleX;
+        const cursorY_screen = (event.clientY - rect.top) * scaleY;
+
+        const angleRad = -(rotationAngle * Math.PI) / 180;
+        const dx = cursorX_screen - 230;
+        const dy = cursorY_screen - 230;
+        
+        const x = 230 + dx * Math.cos(angleRad) - dy * Math.sin(angleRad);
+        const y = 230 + dx * Math.sin(angleRad) + dy * Math.cos(angleRad);
         
         canvas.style.cursor = 'default';
         for (const pawn of visualPawnsRef.current) {
@@ -176,48 +200,14 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
             // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw Map with swapped Green/Yellow houses
             if (mapImage.complete) {
-                // 1. Draw the left half normally (Red TL, Blue BL)
-                ctx.save();
-                ctx.beginPath();
-                ctx.rect(0, 0, 230, 460); 
-                ctx.clip();
-                ctx.drawImage(mapImage, 0, 0);
-                ctx.restore();
-
-                // 2. Draw TR quadrant using the BR (Green) quadrant rotated -90 deg
-                ctx.save();
-                ctx.beginPath();
-                ctx.rect(230, 0, 230, 230);
-                ctx.clip();
-                ctx.translate(230, 230);
-                ctx.rotate(-90 * Math.PI / 180);
-                ctx.translate(-230, -230);
-                ctx.drawImage(mapImage, 0, 0);
-                ctx.restore();
-
-                // 3. Draw BR quadrant using the TR (Yellow) quadrant rotated +90 deg
-                ctx.save();
-                ctx.beginPath();
-                ctx.rect(230, 230, 230, 230);
-                ctx.clip();
-                ctx.translate(230, 230);
-                ctx.rotate(90 * Math.PI / 180);
-                ctx.translate(-230, -230);
-                ctx.drawImage(mapImage, 0, 0);
-                ctx.restore();
+                ctx.drawImage(mapImage, 0, 0, 460, 460);
             }
 
-            // Draw safe positions
-            const safePositions = [16, 24, 29, 37, 42, 50, 55, 63];
-            safePositions.forEach(pos => {
-                const { x, y } = positionMapCoords[pos];
-                ctx.beginPath();
-                ctx.arc(x, y, 16, 0, 2 * Math.PI);
-                ctx.fillStyle = 'rgba(128, 128, 128, 0.6)';
-                ctx.fill();
-            });
+            // We can remove the safe position grey circles since the new board SVG has stars on safe spots natively, 
+            // but let's keep them very faint just in case they are useful for hitboxes visually.
+            // Actually, the new SVG has beautiful stars, let's not draw ugly grey circles over them!
+            // safePositions drawing removed for new UI.
 
             // Update & Draw Pawns
             visualPawnsRef.current.forEach((pawn, index) => {

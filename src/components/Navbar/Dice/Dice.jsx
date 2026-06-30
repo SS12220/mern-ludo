@@ -1,9 +1,10 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { SocketContext } from '../../../App';
 import images from '../../../constants/diceImages';
+import AnimatedOverlay from '../NameContainer/AnimatedOverlay/AnimatedOverlay';
 import styles from './Dice.module.css';
 
-const Dice = ({ rolledNumber, nowMoving, playerColor, movingPlayer }) => {
+const Dice = ({ rolledNumber, nowMoving, playerColor, movingPlayer, time }) => {
     const socket = useContext(SocketContext);
     const [displayNumber, setDisplayNumber] = useState(null);
     const [isRolling, setIsRolling] = useState(false);
@@ -36,12 +37,15 @@ const Dice = ({ rolledNumber, nowMoving, playerColor, movingPlayer }) => {
 
     return (
         <div className={styles.container}>
+            {isCurrentPlayer ? <AnimatedOverlay time={time} /> : null}
             {isCurrentPlayer ? (
                 hasRolledNumber ? (
                     <img src={images[displayNumber - 1]} alt={displayNumber} style={isRolling ? { transform: 'scale(1.1)' } : {}} />
                 ) : nowMoving ? (
                     <img src={images[6]} className='roll' alt='roll' onClick={handleClick} />
-                ) : null
+                ) : (
+                    <img src={images[6]} alt='waiting' style={{ opacity: 0.5, cursor: 'default' }} />
+                )
             ) : (
                 <div className={styles.placeholder} />
             )}

@@ -6,7 +6,7 @@ import { PLAYER_COLORS } from '../../constants/colors';
 import { PlayerDataContext, SocketContext } from '../../App';
 import styles from './Navbar.module.css';
 
-const Navbar = ({ players, started, time, isReady, rolledNumber, nowMoving, movingPlayer, ended, adminId, isPaused, timerEnabled, localColor }) => {
+const Navbar = ({ players, started, time, isReady, rolledNumber, nowMoving, movingPlayer, ended, adminId, isPaused, timerEnabled, localColor, children }) => {
     const context = useContext(PlayerDataContext);
     const socket = useContext(SocketContext);
 
@@ -33,24 +33,96 @@ const Navbar = ({ players, started, time, isReady, rolledNumber, nowMoving, movi
 
     const getPositionalClass = (targetColor, localColor) => {
         const layouts = {
-            blue: { red: 'posTL', green: 'posTR', blue: 'posBL', yellow: 'posBR' }, // 0 deg
-            red: { red: 'posBL', green: 'posTL', blue: 'posBR', yellow: 'posTR' }, // -90 deg
-            green: { red: 'posBR', green: 'posBL', blue: 'posTR', yellow: 'posTL' }, // +180 deg
-            yellow: { red: 'posTR', green: 'posBR', blue: 'posTL', yellow: 'posBL' } // +90 deg
+            blue: { red: 'TL', green: 'TR', blue: 'BL', yellow: 'BR' },
+            red: { red: 'BL', green: 'TL', blue: 'BR', yellow: 'TR' },
+            green: { red: 'BR', green: 'BL', blue: 'TR', yellow: 'TL' },
+            yellow: { red: 'TR', green: 'BR', blue: 'TL', yellow: 'BL' }
         };
         const currentLayout = layouts[localColor] || layouts.blue;
-        return currentLayout[targetColor] || 'posTL';
+        return currentLayout[targetColor] || 'TL';
+    };
+
+    // First, determine the assigned colors for all 4 slots safely
+    const assignedColors = players.map((p, i) => p.color);
+    // Find unused colors to assign to empty slots
+    const unusedColors = PLAYER_COLORS.filter(c => !assignedColors.includes(c));
+    let unusedIndex = 0;
+    const finalColors = players.map((p, i) => {
+        if (p.color) return p.color;
+        // Assign the next available unused color
+        return unusedColors[unusedIndex++];
+    });
+
+    const renderDice = (position) => {
+        const playerIndex = players.findIndex((p, i) => {
+            const assignedColor = finalColors[i];
+            return getPositionalClass(assignedColor, localColor) === position;
+        });
+
+        if (playerIndex === -1) return <div className={styles.playerContainer}></div>;
+        
+        const player = players[playerIndex];
+        const isLocalSlotEmpty = player.name === '...';
+        const assignedColor = finalColors[playerIndex];
+        
+        return (
+            <div className={styles.playerContainer} key={`dice-${position}`}>
+                {/* Empty slot in lobby -> Add local player */}
+                {isAdmin && !started && isLocalSlotEmpty && (
+                    <button onClick={() => socket.emit('room:addLocalPlayer')} style={{ padding: '5px', fontSize: '12px', zIndex: 20 }}>
+                        + Local Player
+                    </button>
+                )}
+
+                {/* Kick Player */}
+                {isAdmin && !isLocalSlotEmpty && player._id && player._id !== adminId && (
+                    <button onClick={() => socket.emit('game:kick', player._id)} style={{ position: 'absolute', top: -10, right: -10, background: 'red', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '10px', padding: '2px 5px', zIndex: 20 }}>
+                        Kick
+                    </button>
+                )}
+
+                {started && !ended && !isLocalSlotEmpty ? <Dice playerColor={assignedColor} {...diceProps} time={time} /> : null}
+                {localColor === player.color && !started && !isAdmin && !player.name.startsWith('Local Player') ? <ReadyButton isReady={isReady} /> : null}
+            </div>
+        );
+    };
+
+    const renderName = (position) => {
+        const playerIndex = players.findIndex((p, i) => {
+            const assignedColor = finalColors[i];
+            return getPositionalClass(assignedColor, localColor) === position;
+        });
+
+        if (playerIndex === -1) return null;
+        
+        const player = players[playerIndex];
+        const isLocalSlotEmpty = player.name === '...';
+        
+        if (isLocalSlotEmpty) return null;
+
+        return <NameContainer key={`name-${position}`} player={player} started={started} position={position} />;
     };
 
     return (
-        <>
-            {/* Admin Game Controls Overlay */}
+        <div className={styles.gameLayout}>
+            {/* Admin Lobby Controls */}
+            {isAdmin && !started && (
+                <div className={styles.adminControlsOverlay}>
+                    {players.length > 1 && (
+                        <button onClick={() => socket.emit('game:start')} style={{ padding: '8px 16px', cursor: 'pointer', background: '#28a745', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '14px', fontWeight: 'bold', marginLeft: '10px' }}>
+                            Start Game
+                        </button>
+                    )}
+                </div>
+            )}
+
+            {/* Admin Game Controls */}
             {isAdmin && started && !ended && (
-                <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 100, display: 'flex', gap: '10px' }}>
-                    <button onClick={() => socket.emit('game:pause')} style={{ padding: '5px 10px', cursor: 'pointer', background: '#333', color: '#fff', border: 'none', borderRadius: '4px' }}>
+                <div className={styles.adminControlsOverlay}>
+                    <button onClick={() => socket.emit('game:pause')} style={{ padding: '5px 10px', cursor: 'pointer', background: '#444', color: '#fff', border: 'none', borderRadius: '4px' }}>
                         {isPaused ? 'Resume' : 'Pause'}
                     </button>
-                    <button onClick={() => socket.emit('game:toggleTimer')} style={{ padding: '5px 10px', cursor: 'pointer', background: '#333', color: '#fff', border: 'none', borderRadius: '4px' }}>
+                    <button onClick={() => socket.emit('game:toggleTimer')} style={{ padding: '5px 10px', cursor: 'pointer', background: '#444', color: '#fff', border: 'none', borderRadius: '4px' }}>
                         {timerEnabled ? 'Disable Timer' : 'Enable Timer'}
                     </button>
                     <div style={{ position: 'relative' }}>
@@ -58,7 +130,7 @@ const Navbar = ({ players, started, time, isReady, rolledNumber, nowMoving, movi
                             End Game...
                         </button>
                         {showEndMenu && (
-                            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '5px', background: '#222', border: '1px solid #444', borderRadius: '4px', display: 'flex', flexDirection: 'column', width: '150px' }}>
+                            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '5px', background: '#222', border: '1px solid #444', borderRadius: '4px', display: 'flex', flexDirection: 'column', width: '150px', zIndex: 1000 }}>
                                 <button onClick={handleReset} style={{ padding: '8px', cursor: 'pointer', background: 'none', color: '#fff', border: 'none', textAlign: 'left', borderBottom: '1px solid #444' }}>
                                     Reset to Lobby
                                 </button>
@@ -71,34 +143,24 @@ const Navbar = ({ players, started, time, isReady, rolledNumber, nowMoving, movi
                 </div>
             )}
 
-            {players.map((player, index) => {
-                const isLocalSlotEmpty = player.name === '...';
-                const assignedColor = player.color || PLAYER_COLORS[index];
-                
-                return (
-                    <div className={`${styles.playerContainer} ${styles[assignedColor]} ${styles[getPositionalClass(assignedColor, localColor)]}`} key={index}>
-                        {!isLocalSlotEmpty && <NameContainer player={player} time={time} isPaused={isPaused} timerEnabled={timerEnabled} />}
-                        
-                        {/* Empty slot in lobby -> Add local player */}
-                        {isAdmin && !started && isLocalSlotEmpty && (
-                            <button onClick={() => socket.emit('room:addLocalPlayer')} style={{ marginTop: '10px', padding: '5px', fontSize: '12px' }}>
-                                + Local Player
-                            </button>
-                        )}
+            <div className={styles.playersRow}>
+                {renderDice('TL')}
+                {renderDice('TR')}
+            </div>
 
-                        {/* Kick Player */}
-                        {isAdmin && !isLocalSlotEmpty && player._id && player._id !== adminId && (
-                            <button onClick={() => socket.emit('game:kick', player._id)} style={{ position: 'absolute', top: 5, right: 5, background: 'red', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '10px', padding: '2px 5px' }}>
-                                Kick
-                            </button>
-                        )}
+            <div className={styles.boardWrapper}>
+                {renderName('TL')}
+                {renderName('TR')}
+                {children}
+                {renderName('BL')}
+                {renderName('BR')}
+            </div>
 
-                        {started && !ended && !isLocalSlotEmpty ? <Dice playerColor={assignedColor} {...diceProps} /> : null}
-                        {localColor === player.color && !started ? <ReadyButton isReady={isReady} /> : null}
-                    </div>
-                );
-            })}
-        </>
+            <div className={styles.playersRow}>
+                {renderDice('BL')}
+                {renderDice('BR')}
+            </div>
+        </div>
     );
 };
 

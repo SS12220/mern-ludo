@@ -62,6 +62,7 @@ module.exports = socket => {
         }
         await updateRoom(room);
         socket.to(room._id.toString()).emit('room:data', JSON.stringify(room));
+        socket.emit('room:data', JSON.stringify(room));
     };
 
     const handleChangeColor = async ({ targetPlayerId, newColor }) => {
@@ -134,10 +135,42 @@ module.exports = socket => {
         socket.emit('room:data', JSON.stringify(room));
     };
 
+    const handleKickFromRoom = async (playerIdToKick) => {
+        const room = await getRoom(req.session.roomId);
+        if (!room || room.started) return;
+        if (room.adminId !== req.session.playerId) return;
+        if (room.adminId === playerIdToKick) return;
+
+        const playerIndex = room.players.findIndex(p => p._id.toString() === playerIdToKick);
+        if (playerIndex !== -1) {
+            room.players.splice(playerIndex, 1);
+            room.full = false;
+            await updateRoom(room);
+            
+            socket.to(room._id.toString()).emit('room:data', JSON.stringify(room));
+            socket.emit('room:data', JSON.stringify(room));
+            
+            socket.to(room._id.toString()).emit('room:kicked', playerIdToKick);
+            socket.emit('room:kicked', playerIdToKick);
+        }
+    };
+
+    const handleStartGame = async () => {
+        const room = await getRoom(req.session.roomId);
+        if (!room || room.started) return;
+        if (room.adminId !== req.session.playerId) return;
+        if (room.players.length > 1) {
+            room.startGame();
+            await updateRoom(room);
+        }
+    };
+
     socket.on('player:login', handleLogin);
     socket.on('player:ready', handleReady);
     socket.on('player:exit', handleExit);
     socket.on('room:addLocalPlayer', handleAddLocalPlayer);
     socket.on('room:changeColor', handleChangeColor);
     socket.on('room:toggleTeamMode', handleToggleTeamMode);
+    socket.on('room:kick', handleKickFromRoom);
+    socket.on('game:start', handleStartGame);
 };

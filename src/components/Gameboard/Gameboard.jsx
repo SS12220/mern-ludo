@@ -72,6 +72,12 @@ const Gameboard = () => {
         socket.on('game:stopped', () => {
             socket.emit('player:exit');
         });
+        socket.on('room:kicked', kickedPlayerId => {
+            if (context.playerId === kickedPlayerId) {
+                alert("You have been kicked from the lobby.");
+                socket.emit('player:exit');
+            }
+        });
 
     }, [socket, context.playerId, context.roomId, setRolledNumber]);
 
@@ -85,23 +91,22 @@ const Gameboard = () => {
                     {!started ? (
                         <Lobby players={players} adminId={adminId} teamMode={teamMode} />
                     ) : (
-                        <>
-                            <Navbar
-                                players={players}
-                                started={started}
-                                time={time}
-                                isReady={isReady}
-                                movingPlayer={movingPlayer}
-                                rolledNumber={rolledNumber}
-                                nowMoving={nowMoving}
-                                ended={winner !== null}
-                                adminId={adminId}
-                                isPaused={isPaused}
-                                timerEnabled={timerEnabled}
-                                localColor={myColor}
-                            />
+                        <Navbar
+                            players={players}
+                            started={started}
+                            time={time}
+                            isReady={isReady}
+                            movingPlayer={movingPlayer}
+                            rolledNumber={rolledNumber}
+                            nowMoving={nowMoving}
+                            ended={winner !== null}
+                            adminId={adminId}
+                            isPaused={isPaused}
+                            timerEnabled={timerEnabled}
+                            localColor={myColor}
+                        >
                             <Map pawns={pawns} nowMoving={nowMoving} rolledNumber={rolledNumber} localColor={myColor} players={players} />
-                        </>
+                        </Navbar>
                     )}
                 </div>
             ) : (

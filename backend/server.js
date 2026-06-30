@@ -41,6 +41,37 @@ async function startServer() {
         console.log(`Server listening on port ${PORT}`);
     });
 
+    // Agora Token Generator Endpoint
+    app.get('/api/agora/token', (req, res) => {
+        const { channelName } = req.query;
+        if (!channelName) {
+            return res.status(400).json({ error: 'channelName is required' });
+        }
+
+        const appID = process.env.AGORA_APP_ID;
+        const appCertificate = process.env.AGORA_APP_CERTIFICATE;
+        
+        // We use a wildcard UID (0) to let Agora assign random UIDs to users joining.
+        const uid = 0; 
+        
+        // Expiration time: 24 hours
+        const expirationTimeInSeconds = 3600 * 24;
+        const currentTimestamp = Math.floor(Date.now() / 1000);
+        const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
+
+        const { RtcTokenBuilder, RtcRole } = require('agora-access-token');
+        const token = RtcTokenBuilder.buildTokenWithUid(
+            appID,
+            appCertificate,
+            channelName,
+            uid,
+            RtcRole.PUBLISHER,
+            privilegeExpiredTs
+        );
+
+        res.json({ token, appId: appID });
+    });
+
     require('./config/database')(mongoose);
     require('./config/socket')(server);
 

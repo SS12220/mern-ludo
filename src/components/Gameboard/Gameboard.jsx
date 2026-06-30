@@ -178,7 +178,7 @@ const Gameboard = () => {
         <>
             {/* Global Controls */}
             <div style={{ position: 'fixed', right: '10px', top: '10px', zIndex: 9999, display: 'flex', gap: '10px' }}>
-                <AudioCallManager socket={socket} />
+                <AudioCallManager roomId={context.roomId} />
                 <button 
                     onClick={calculateScale} 
                     title="Recalibrate Board Size"

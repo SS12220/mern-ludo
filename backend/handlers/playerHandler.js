@@ -22,7 +22,10 @@ module.exports = socket => {
 
     const handleReady = async () => {
         const room = await getRoom(req.session.roomId);
-        room.getPlayer(req.session.playerId).changeReadyStatus();
+        if (!room) return;
+        const player = room.getPlayer(req.session.playerId);
+        if (!player) return;
+        player.changeReadyStatus();
         if (room.canStartGame()) {
             room.startGame();
         }

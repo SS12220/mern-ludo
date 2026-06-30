@@ -9,7 +9,7 @@ module.exports = socket => {
 
     const handleMovePawn = async pawnId => {
         const room = await getRoom(req.session.roomId);
-        if (room.winner) return;
+        if (!room || room.winner) return;
         const pawn = room.getPawn(pawnId);
         if (isMoveValid(req.session, pawn, room)) {
             const newPositionOfMovedPawn = pawn.getPositionAfterMove(room.rolledNumber);
@@ -39,6 +39,7 @@ module.exports = socket => {
 
     const handleRollDice = async () => {
         const room = await getRoom(req.session.roomId);
+        if (!room) return;
         const movingPlayer = room.getCurrentlyMovingPlayer();
 
         let rolledNumber = rollDice();
@@ -73,7 +74,7 @@ module.exports = socket => {
 
     const handlePauseGame = async () => {
         const room = await getRoom(req.session.roomId);
-        if (room.adminId !== req.session.playerId) return;
+        if (!room || room.adminId !== req.session.playerId) return;
         room.isPaused = !room.isPaused;
         if (room.isPaused) {
             timeoutManager.clear(room._id.toString());
@@ -86,7 +87,7 @@ module.exports = socket => {
 
     const handleToggleTimer = async () => {
         const room = await getRoom(req.session.roomId);
-        if (room.adminId !== req.session.playerId) return;
+        if (!room || room.adminId !== req.session.playerId) return;
         room.timerEnabled = !room.timerEnabled;
         if (!room.timerEnabled) {
             timeoutManager.clear(room._id.toString());
@@ -100,7 +101,7 @@ module.exports = socket => {
 
     const handleKickPlayer = async (playerIdToKick) => {
         const room = await getRoom(req.session.roomId);
-        if (room.adminId !== req.session.playerId) return;
+        if (!room || room.adminId !== req.session.playerId) return;
         if (room.adminId === playerIdToKick) return; // Cannot kick self
         
         // Find player and replace with a local bot or just disconnect them

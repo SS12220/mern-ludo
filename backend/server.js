@@ -4,6 +4,8 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
 require('dotenv').config();
+delete process.env.CONNECTION_URI; // Force using local in-memory database
+
 
 const PORT = process.env.PORT;
 

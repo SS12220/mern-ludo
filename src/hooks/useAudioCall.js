@@ -17,6 +17,12 @@ const useAudioCall = (socket, isAudioEnabled) => {
             setPeerId(id);
             peerInstance.current = myPeer;
             
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                console.error("MediaDevices or getUserMedia is not supported in this browser context (insecure origin).");
+                alert("Microphone access is blocked by your browser on insecure HTTP network connections. Please use 'localhost:3000' or configure HTTPS.");
+                return;
+            }
+
             navigator.mediaDevices.getUserMedia({ audio: true, video: false })
                 .then((stream) => {
                     localStream.current = stream;
@@ -53,9 +59,10 @@ const useAudioCall = (socket, isAudioEnabled) => {
 
     // Listen for new users joining to call them
     useEffect(() => {
-        if (!socket || !peerInstance.current || !localStream.current || !isAudioEnabled) return;
+        if (!socket || !peerInstance.current || !isAudioEnabled) return;
 
         const handleUserJoined = (newPeerId) => {
+            if (!localStream.current) return;
             const call = peerInstance.current.call(newPeerId, localStream.current);
             if (call) {
                 call.on('stream', (userVideoStream) => {

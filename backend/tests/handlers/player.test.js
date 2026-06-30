@@ -1,10 +1,9 @@
 const { io } = require('socket.io-client');
 const { expect } = require('chai');
-const { server } = require('../../server');
+const { server, getHttpServer } = require('../../server');
 const mongoose = require('mongoose');
-const CONNECTION_URI = require('../../credentials.js');
 
-const socketURL = 'http://localhost:8080';
+const socketURL = `http://localhost:${process.env.PORT || 8080}`;
 const options = {
     transports: ['websocket'],
     'force new connection': true,
@@ -14,13 +13,26 @@ describe('Testing player socket handlers', function () {
     let firstPlayer, secondPlayer;
 
     before(async function () {
-        await mongoose.connect(CONNECTION_URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
+        // Wait for mongoose connection from server.js
+        while (mongoose.connection.readyState !== 1) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
 
         firstPlayer = io.connect(socketURL, options);
         secondPlayer = io.connect(socketURL, options);
+
+        // Wait for socket connections
+        await new Promise((resolve) => {
+            const check = () => {
+                if (firstPlayer.connected && secondPlayer.connected) {
+                    resolve();
+                } else {
+                    setTimeout(check, 100);
+                }
+            };
+            check();
+        });
+
         await assertDatabaseIsClear();
     });
     const assertDatabaseIsClear = async () => {
@@ -35,16 +47,19 @@ describe('Testing player socket handlers', function () {
         done();
     });
 
-    after(function (done) {
+    after(async function () {
         if (firstPlayer.connected) {
             firstPlayer.disconnect();
         }
         if (secondPlayer.connected) {
             secondPlayer.disconnect();
         }
-        server.close();
-        assertDatabaseIsClear();
-        done();
+        const httpServer = getHttpServer();
+        if (httpServer) {
+            httpServer.close();
+        }
+        await assertDatabaseIsClear();
+        await mongoose.connection.close();
     });
 
     it('should return credentials when joining room', function (done) {

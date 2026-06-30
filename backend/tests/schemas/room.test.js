@@ -1,36 +1,30 @@
 const { expect } = require('chai');
-const RoomModel = require('../../schemas/room');
-const { getPawnPositionAfterMove, getStartPositions } = require('../../utils/functions');
+const RoomModel = require('../../models/room');
 describe('Testing room model methods', function () {
     const room = new RoomModel();
 
     beforeEach(function () {
         room.players = [];
-        room.pawns = getStartPositions();
+        room.pawns.forEach(pawn => {
+            pawn.position = pawn.basePos;
+        });
     });
     it('should correctly beat pawn', function () {
-        room.addPlayer('test1', 'red');
-        room.addPlayer('test2', 'blue');
-        room.pawns.forEach(pawn => {
-            pawn.position = getPawnPositionAfterMove(1, pawn);
-        });
-        room.beatPawns(16, 'green');
-        room.pawns.forEach(pawn => {
-            if (pawn.color != 'red') {
-                expect(pawn.position).to.not.equal(pawn.basePos);
-            } else {
-                expect(pawn.position).to.equal(pawn.basePos);
-            }
-        });
+        room.addPlayer('test1', 'player1-session-id');
+        room.addPlayer('test2', 'player2-session-id');
+        // Place one red pawn on a non-safe spot (e.g. 20)
+        room.pawns[0].position = 20;
+        room.beatPawns(20, 'green');
+        expect(room.pawns[0].position).to.equal(room.pawns[0].basePos);
     });
 
-    it('should correctly beat multiple pawns', function () {
-        room.pawns[0].position = 16;
-        room.pawns[1].position = 16;
-        room.beatPawns(16, 'green');
-        room.pawns.forEach(pawn => {
-            expect(pawn.position).to.equal(pawn.basePos);
-        });
+    it('should correctly beat multiple pawns of different colors', function () {
+        // Place a red pawn and a blue pawn on the same non-safe spot (e.g. 20)
+        room.pawns[0].position = 20; // red
+        room.pawns[4].position = 20; // blue
+        room.beatPawns(20, 'green');
+        expect(room.pawns[0].position).to.equal(room.pawns[0].basePos);
+        expect(room.pawns[4].position).to.equal(room.pawns[4].basePos);
     });
 
     it('should correctly change moving player from last to first', function () {

@@ -63,7 +63,7 @@ PawnSchema.methods.getPositionAfterMove = function (rolledNumber) {
                 return position;
             }
         case 'green':
-            if (position + rolledNumber <= 85) {
+            if (position + rolledNumber <= 91) {
                 if (position >= 12 && position <= 15) {
                     return 29;
                 } else if (position <= 67 && position + rolledNumber > 67) {

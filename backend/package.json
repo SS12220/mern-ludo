@@ -19,6 +19,6 @@
     "socket.io-client": "^4.7.2"
   },
   "scripts": {
-    "test": "mocha tests/**/*.js"
+    "test": "mocha --require tests/setup_env.js tests/**/*.js"
   }
 }

@@ -1,10 +1,15 @@
 const session = require('express-session');
-const MongoDBStore = require('connect-mongodb-session')(session);
 
-const store = new MongoDBStore({
-    uri: process.env.CONNECTION_URI,
-    collection: 'sessions',
-});
+let store;
+if (process.env.NODE_ENV === 'test') {
+    store = new session.MemoryStore();
+} else {
+    const MongoDBStore = require('connect-mongodb-session')(session);
+    store = new MongoDBStore({
+        uri: process.env.CONNECTION_URI,
+        collection: 'sessions',
+    });
+}
 const sessionMiddleware = session({
     store: store,
     credentials: true,

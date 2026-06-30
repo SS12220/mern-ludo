@@ -24,7 +24,7 @@ PlayerSchema.methods.canMove = function (room, rolledNumber) {
         const isGreen = this.color === 'green';
         const isYellow = this.color === 'yellow';
 
-        const homePos = isRed ? 73 : isBlue ? 79 : isGreen ? 85 : 91;
+        const homePos = isRed ? 73 : isBlue ? 79 : isGreen ? 91 : 85;
         const allHome = playerPawns.filter(p => p.position === homePos).length === 4;
 
         if (allHome) {

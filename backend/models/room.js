@@ -170,7 +170,7 @@ RoomSchema.methods.getPawnsThatCanMove = function () {
         const isGreen = movingPlayer.color === 'green';
         const isYellow = movingPlayer.color === 'yellow';
 
-        const homePos = isRed ? 73 : isBlue ? 79 : isGreen ? 85 : 91;
+        const homePos = isRed ? 73 : isBlue ? 79 : isGreen ? 91 : 85;
         const allHome = playerPawns.filter(p => p.position === homePos).length === 4;
 
         if (allHome) {
@@ -214,8 +214,8 @@ RoomSchema.methods.endGame = function (winner) {
 RoomSchema.methods.getWinner = function () {
     const redDone = this.pawns.filter(pawn => pawn.color === 'red' && pawn.position === 73).length === 4;
     const blueDone = this.pawns.filter(pawn => pawn.color === 'blue' && pawn.position === 79).length === 4;
-    const greenDone = this.pawns.filter(pawn => pawn.color === 'green' && pawn.position === 85).length === 4;
-    const yellowDone = this.pawns.filter(pawn => pawn.color === 'yellow' && pawn.position === 91).length === 4;
+    const greenDone = this.pawns.filter(pawn => pawn.color === 'green' && pawn.position === 91).length === 4;
+    const yellowDone = this.pawns.filter(pawn => pawn.color === 'yellow' && pawn.position === 85).length === 4;
 
     if (this.teamMode) {
         if (redDone && yellowDone) return 'red & yellow';

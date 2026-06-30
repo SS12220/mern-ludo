@@ -27,9 +27,11 @@ app.use(
 let server;
 
 async function startServer() {
-    const { MongoMemoryReplSet } = require('mongodb-memory-server');
-    const mongoServer = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
-    process.env.CONNECTION_URI = mongoServer.getUri();
+    if (!process.env.CONNECTION_URI) {
+        const { MongoMemoryReplSet } = require('mongodb-memory-server');
+        const mongoServer = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+        process.env.CONNECTION_URI = mongoServer.getUri();
+    }
     
     const { sessionMiddleware } = require('./config/session');
     app.use(sessionMiddleware);
@@ -52,4 +54,4 @@ async function startServer() {
 
 startServer().catch(console.error);
 
-module.exports = { server: app };
+module.exports = { server: app, getHttpServer: () => server };

@@ -53,7 +53,7 @@ const isMoveValid = (session, pawn, room) => {
         const isBlue = movingPlayer.color === 'blue';
         const isGreen = movingPlayer.color === 'green';
         
-        const homePos = isRed ? 73 : isBlue ? 79 : isGreen ? 85 : 91;
+        const homePos = isRed ? 73 : isBlue ? 79 : isGreen ? 91 : 85;
         const playerPawns = room.getPlayerPawns(movingPlayer.color);
         const allHome = playerPawns.filter(p => p.position === homePos).length === 4;
 

@@ -25,7 +25,10 @@
     "server": "cd backend && node server.js",
     "dev": "concurrently \"npm run server\" \"npm start\"",
     "build": "react-scripts build",
-    "test": "react-scripts test"
+    "test": "react-scripts test",
+    "test:backend": "cd backend && npm test",
+    "test:e2e": "cypress run",
+    "test:e2e:open": "cypress open"
   },
   "eslintConfig": {
     "extends": [

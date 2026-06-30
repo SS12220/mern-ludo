@@ -42,8 +42,8 @@ const getCoordsForPawn = (pawnId, targetPosition, allPawns, isFinalDestination) 
 const getRotationAngle = (color) => {
     switch (color) {
         case 'red': return -90;
-        case 'green': return 90;
-        case 'yellow': return 180;
+        case 'green': return 180;
+        case 'yellow': return 90;
         case 'blue': 
         default: return 0;
     }

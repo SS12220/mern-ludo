@@ -85,9 +85,7 @@ const Gameboard = () => {
     };
 
     const handleStopHosting = () => {
-        if (window.confirm("Are you sure you want to stop hosting? Everyone will be disconnected.")) {
-            socket.emit('game:stopHosting');
-        }
+        socket.emit('game:stopHosting');
     };
 
     useEffect(() => {

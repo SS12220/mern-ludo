@@ -60,6 +60,9 @@ module.exports = socket => {
         
         // Use the admin's session ID but a generated name
         room.addPlayer(`Local Player ${room.players.length}`, req.sessionID);
+        // Automatically mark local players as ready
+        room.players[room.players.length - 1].ready = true;
+        
         if (room.isFull()) {
             room.startGame();
         }
@@ -165,6 +168,8 @@ module.exports = socket => {
         if (room.players.length > 1) {
             room.startGame();
             await updateRoom(room);
+            socket.to(room._id.toString()).emit('room:data', JSON.stringify(room));
+            socket.emit('room:data', JSON.stringify(room));
         }
     };
 
@@ -174,6 +179,6 @@ module.exports = socket => {
     socket.on('room:addLocalPlayer', handleAddLocalPlayer);
     socket.on('room:changeColor', handleChangeColor);
     socket.on('room:toggleTeamMode', handleToggleTeamMode);
-    socket.on('room:kick', handleKickFromRoom);
+    socket.on('game:kick', handleKickFromRoom);
     socket.on('game:start', handleStartGame);
 };

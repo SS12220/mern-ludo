@@ -10,6 +10,35 @@ import getPositionAfterMove from './getPositionAfterMove';
 import getPath from './calculatePath';
 import audioManager from '../../../utils/audioManager';
 
+const getCoordsForPawn = (pawnId, targetPosition, allPawns, isFinalDestination) => {
+    const baseCoords = positionMapCoords[targetPosition];
+    if (!baseCoords) return { x: 0, y: 0 };
+    
+    let x = baseCoords.x + 20; // 20px padding for 500x500 canvas
+    let y = baseCoords.y + 20;
+
+    if (isFinalDestination && targetPosition > 15) {
+        const pawnsAtPos = allPawns.filter(p => p.position === targetPosition);
+        if (pawnsAtPos.length > 1) {
+            pawnsAtPos.sort((a, b) => a._id.localeCompare(b._id));
+            const index = pawnsAtPos.findIndex(p => p._id === pawnId);
+            
+            const offsets = [
+                { dx: -7, dy: -7 },
+                { dx: 7, dy: 7 },
+                { dx: -7, dy: 7 },
+                { dx: 7, dy: -7 }
+            ];
+            
+            if (index >= 0 && index < offsets.length) {
+                x += offsets[index].dx;
+                y += offsets[index].dy;
+            }
+        }
+    }
+    return { x, y };
+};
+
 const getRotationAngle = (color) => {
     switch (color) {
         case 'red': return -90;
@@ -93,7 +122,7 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
 
         const newVisualPawns = pawns.map(p => {
             const existing = visualPawnsRef.current.find(vp => vp._id === p._id);
-            const targetCoords = positionMapCoords[p.position];
+            const targetCoords = getCoordsForPawn(p._id, p.position, pawns, true);
             
             if (existing && existing.position !== p.position) {
                 // Pawn moved, calculate path
@@ -114,7 +143,8 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
 
                 // If path is just one step (direct move or capture), set next target
                 const nextPos = path.length > 1 ? path[1] : path[0];
-                const nextCoords = positionMapCoords[nextPos];
+                const isFinal = (path.length <= 2);
+                const nextCoords = getCoordsForPawn(p._id, nextPos, pawns, isFinal);
 
                 let captureDuration = 600;
                 if (isBeaten) {
@@ -153,7 +183,7 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
                 };
             } else {
                 // Initial load
-                const targetCoords = positionMapCoords[p.position];
+                const targetCoords = getCoordsForPawn(p._id, p.position, pawns, true);
                 return { ...p, x: targetCoords.x, y: targetCoords.y, isAnimating: false };
             }
         });
@@ -176,10 +206,15 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
 
         const image = loadedPawnImages[pawn.color];
         if (image && image.complete) {
+            const width = isValidToMove ? 30 : 24;
+            const height = isValidToMove ? 37.5 : 30;
+            const offsetX = -width / 2;
+            const offsetY = -height * 0.8;
+            
             context.save();
             context.translate(x, y);
             context.rotate(-rotationAngle * Math.PI / 180);
-            context.drawImage(image, -12, -24, 24, 30);
+            context.drawImage(image, offsetX, offsetY, width, height);
             context.restore();
         }
         return touchableArea;
@@ -195,11 +230,11 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
         const cursorY_screen = (event.clientY - rect.top) * scaleY;
 
         const angleRad = -(rotationAngle * Math.PI) / 180;
-        const dx = cursorX_screen - 230;
-        const dy = cursorY_screen - 230;
+        const dx = cursorX_screen - 250;
+        const dy = cursorY_screen - 250;
         
-        const cursorX = 230 + dx * Math.cos(angleRad) - dy * Math.sin(angleRad);
-        const cursorY = 230 + dx * Math.sin(angleRad) + dy * Math.cos(angleRad);
+        const cursorX = 250 + dx * Math.cos(angleRad) - dy * Math.sin(angleRad);
+        const cursorY = 250 + dx * Math.sin(angleRad) + dy * Math.cos(angleRad);
         
         for (const pawn of visualPawnsRef.current) {
             if (ctx.isPointInPath(pawn.touchableArea, cursorX, cursorY)) {
@@ -225,25 +260,18 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
         
         const x = 230 + dx * Math.cos(angleRad) - dy * Math.sin(angleRad);
         const y = 230 + dx * Math.sin(angleRad) + dy * Math.cos(angleRad);
-        
         canvas.style.cursor = 'default';
         for (const pawn of visualPawnsRef.current) {
-            if (
-                pawn.touchableArea &&
-                ctx.isPointInPath(pawn.touchableArea, x, y) &&
-                canInteractWithColor(pawn.color) &&
-                canPawnMove(pawn, effectiveRolledNumber)
-            ) {
-                const pawnPosition = getPositionAfterMove(pawn, effectiveRolledNumber);
-                if (pawnPosition) {
-                    canvas.style.cursor = 'pointer';
-                    if (hintPawn && hintPawn.id === pawn._id) return;
-                    setHintPawn({ id: pawn._id, position: pawnPosition, color: 'grey' });
-                    return;
+            if (pawn.touchableArea && ctx.isPointInPath(pawn.touchableArea, x, y) && canInteractWithColor(pawn.color)) {
+                if (canPawnMove(pawn, effectiveRolledNumber)) {
+                    const pawnPosition = getPositionAfterMove(pawn, effectiveRolledNumber);
+                    if (pawnPosition) {
+                        canvas.style.cursor = 'pointer';
+                        return;
+                    }
                 }
             }
         }
-        setHintPawn(null);
     };
 
     useEffect(() => {
@@ -256,7 +284,39 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if (mapImage.complete) {
-                ctx.drawImage(mapImage, 0, 0, 460, 460);
+                ctx.drawImage(mapImage, 20, 20, 460, 460);
+            }
+
+            // Draw Team Markers
+            if (players.length === 4) {
+                const drawBadge = (x, y, text, color) => {
+                    ctx.save();
+                    // Since the canvas is rotated by rotationAngle, we need to counter-rotate the text so it's always upright!
+                    // Wait, the canvas itself is rotated via CSS! Not via context.
+                    // The context is NOT rotated, so text is drawn upright.
+                    ctx.beginPath();
+                    ctx.arc(x, y, 12, 0, 2 * Math.PI);
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = '#fff';
+                    ctx.stroke();
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(text, x, y + 1); // +1 for visual alignment
+                    ctx.restore();
+                };
+
+                // Red (TL) - Team B
+                drawBadge(192, 192, 'B', '#ff4444');
+                // Green (TR) - Team A
+                drawBadge(308, 192, 'A', '#28a745');
+                // Blue (BL) - Team A
+                drawBadge(192, 308, 'A', '#007bff');
+                // Yellow (BR) - Team B
+                drawBadge(308, 308, 'B', '#ffc107');
             }
 
             // Update & Draw Pawns
@@ -292,7 +352,8 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
                                 // More steps to go!
                                 pawn.pathIndex++;
                                 const nextPos = pawn.path[pawn.pathIndex];
-                                const targetCoords = positionMapCoords[nextPos];
+                                const isFinal = (pawn.pathIndex === pawn.path.length - 1);
+                                const targetCoords = getCoordsForPawn(pawn._id, nextPos, visualPawnsRef.current, isFinal);
                                 
                                 pawn.startX = currentX;
                                 pawn.startY = currentY;
@@ -328,11 +389,6 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
                 pawn.touchableArea = paintPawn(ctx, pawn, currentX, currentY, isValidToMove);
             });
 
-            if (hintPawn) {
-                const { x, y } = positionMapCoords[hintPawn.position];
-                paintPawn(ctx, hintPawn, x, y);
-            }
-
             animationFrameRef.current = requestAnimationFrame(renderLoop);
         };
 
@@ -344,8 +400,8 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
         <canvas
             className='canvas-container'
             style={{ transform: `rotate(${rotationAngle}deg)`, transition: 'transform 0.5s ease' }}
-            width={460}
-            height={460}
+            width={500}
+            height={500}
             ref={canvasRef}
             onClick={handleCanvasClick}
             onMouseMove={handleMouseMove}

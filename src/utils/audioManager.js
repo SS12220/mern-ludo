@@ -32,7 +32,11 @@ class AudioManager {
             // Clone the node so we can play overlapping sounds (like fast steps)
             const soundClone = this.sounds[soundName].cloneNode();
             soundClone.volume = 0.7; // Slightly reduce volume
-            soundClone.play().catch(e => console.warn('Audio playback failed (interaction required)', e));
+            soundClone.play().catch(e => {
+                if (e.name !== 'NotAllowedError') {
+                    console.warn('Audio playback failed:', e);
+                }
+            });
         }
     }
 }

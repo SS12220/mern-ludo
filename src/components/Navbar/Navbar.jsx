@@ -17,7 +17,7 @@ const Navbar = ({ players, started, time, isReady, rolledNumber, nowMoving, movi
     };
 
     const isAdmin = context.playerId === adminId;
-    const [showEndMenu, setShowEndMenu] = React.useState(false);
+    const [showAdminMenu, setShowAdminMenu] = React.useState(false);
 
     const handleReset = () => {
         if (window.confirm("Are you sure you want to reset the game back to the Lobby?")) {
@@ -105,41 +105,39 @@ const Navbar = ({ players, started, time, isReady, rolledNumber, nowMoving, movi
 
     return (
         <div className={styles.gameLayout}>
-            {/* Admin Lobby Controls */}
-            {isAdmin && !started && (
-                <div className={styles.adminControlsOverlay}>
-                    {players.length > 1 && (
-                        <button onClick={() => socket.emit('game:start')} style={{ padding: '8px 16px', cursor: 'pointer', background: '#28a745', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '14px', fontWeight: 'bold', marginLeft: '10px' }}>
-                            Start Game
-                        </button>
-                    )}
-                </div>
-            )}
-
             {/* Admin Game Controls */}
-            {isAdmin && started && !ended && (
-                <div className={styles.adminControlsOverlay}>
-                    <button onClick={() => socket.emit('game:pause')} style={{ padding: '5px 10px', cursor: 'pointer', background: '#444', color: '#fff', border: 'none', borderRadius: '4px' }}>
-                        {isPaused ? 'Resume' : 'Pause'}
+            {isAdmin && (
+                <div className={styles.adminControlsOverlay} style={{ right: '10px', left: 'auto', top: '10px' }}>
+                    <button 
+                        onClick={() => setShowAdminMenu(!showAdminMenu)} 
+                        style={{ padding: '8px 12px', cursor: 'pointer', background: '#333', color: '#fff', border: '1px solid #555', borderRadius: '8px', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                        ☰ 
                     </button>
-                    <button onClick={() => socket.emit('game:toggleTimer')} style={{ padding: '5px 10px', cursor: 'pointer', background: '#444', color: '#fff', border: 'none', borderRadius: '4px' }}>
-                        {timerEnabled ? 'Disable Timer' : 'Enable Timer'}
-                    </button>
-                    <div style={{ position: 'relative' }}>
-                        <button onClick={() => setShowEndMenu(!showEndMenu)} style={{ padding: '5px 10px', cursor: 'pointer', background: '#cc3333', color: '#fff', border: 'none', borderRadius: '4px' }}>
-                            End Game...
-                        </button>
-                        {showEndMenu && (
-                            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '5px', background: '#222', border: '1px solid #444', borderRadius: '4px', display: 'flex', flexDirection: 'column', width: '150px', zIndex: 1000 }}>
-                                <button onClick={handleReset} style={{ padding: '8px', cursor: 'pointer', background: 'none', color: '#fff', border: 'none', textAlign: 'left', borderBottom: '1px solid #444' }}>
-                                    Reset to Lobby
+                    {showAdminMenu && (
+                        <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', background: '#222', border: '1px solid #444', borderRadius: '8px', display: 'flex', flexDirection: 'column', width: '180px', zIndex: 1000, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+                            {!started && players.length > 1 && (
+                                <button onClick={() => { socket.emit('game:start'); setShowAdminMenu(false); }} style={{ padding: '12px', cursor: 'pointer', background: '#28a745', color: '#fff', border: 'none', textAlign: 'left', borderBottom: '1px solid #444', fontWeight: 'bold' }}>
+                                    Start Game
                                 </button>
-                                <button onClick={handleStopHosting} style={{ padding: '8px', cursor: 'pointer', background: 'none', color: '#ff4444', border: 'none', textAlign: 'left' }}>
-                                    Stop Hosting
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                            {started && !ended && (
+                                <>
+                                    <button onClick={() => { socket.emit('game:pause'); setShowAdminMenu(false); }} style={{ padding: '12px', cursor: 'pointer', background: 'none', color: '#fff', border: 'none', textAlign: 'left', borderBottom: '1px solid #444' }}>
+                                        {isPaused ? '▶ Resume Game' : '⏸ Pause Game'}
+                                    </button>
+                                    <button onClick={() => { socket.emit('game:toggleTimer'); setShowAdminMenu(false); }} style={{ padding: '12px', cursor: 'pointer', background: 'none', color: '#fff', border: 'none', textAlign: 'left', borderBottom: '1px solid #444' }}>
+                                        {timerEnabled ? '⏱ Disable Timer' : '⏱ Enable Timer'}
+                                    </button>
+                                    <button onClick={() => { handleReset(); setShowAdminMenu(false); }} style={{ padding: '12px', cursor: 'pointer', background: 'none', color: '#fff', border: 'none', textAlign: 'left', borderBottom: '1px solid #444' }}>
+                                        ↺ Reset to Lobby
+                                    </button>
+                                    <button onClick={() => { handleStopHosting(); setShowAdminMenu(false); }} style={{ padding: '12px', cursor: 'pointer', background: 'none', color: '#ff4444', border: 'none', textAlign: 'left' }}>
+                                        ⏹ Stop Hosting
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
 

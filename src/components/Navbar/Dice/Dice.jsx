@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { SocketContext } from '../../../App';
 import images from '../../../constants/diceImages';
 import AnimatedOverlay from '../NameContainer/AnimatedOverlay/AnimatedOverlay';
+import audioManager from '../../../utils/audioManager';
 import styles from './Dice.module.css';
 
 const Dice = ({ rolledNumber, nowMoving, playerColor, movingPlayer, time }) => {
@@ -11,6 +12,7 @@ const Dice = ({ rolledNumber, nowMoving, playerColor, movingPlayer, time }) => {
 
     useEffect(() => {
         if (rolledNumber) {
+            audioManager.play('diceroll');
             setIsRolling(true);
             let cycles = 0;
             const interval = setInterval(() => {
@@ -29,6 +31,7 @@ const Dice = ({ rolledNumber, nowMoving, playerColor, movingPlayer, time }) => {
     }, [rolledNumber]);
 
     const handleClick = () => {
+        audioManager.play('click');
         socket.emit('game:roll');
     };
 

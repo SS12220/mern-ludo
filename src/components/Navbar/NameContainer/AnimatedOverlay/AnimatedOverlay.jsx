@@ -10,8 +10,8 @@ const AnimatedOverlay = ({ time }) => {
     return (
         <svg className={styles.overlaySvg} data-testid='animated-overlay'>
             <rect
-                x="0" y="0" width="100%" height="100%"
-                rx="5" ry="5"
+                x="3" y="3" width="calc(100% - 6px)" height="calc(100% - 6px)"
+                rx="10" ry="10"
                 pathLength="100"
                 className={styles.timerStroke}
                 style={{ animationDelay }}

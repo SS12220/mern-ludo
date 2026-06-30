@@ -7,6 +7,8 @@ import pawnImagesSrc from '../../../constants/pawnImages';
 import pawnRingSrc from '../../../images/New-UI/Pawns/Pawn Bottom Ring.svg';
 import canPawnMove from './canPawnMove';
 import getPositionAfterMove from './getPositionAfterMove';
+import getPath from './calculatePath';
+import audioManager from '../../../utils/audioManager';
 
 const getRotationAngle = (color) => {
     switch (color) {
@@ -77,28 +79,81 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
 
     // Sync visual pawns with backend pawns
     useEffect(() => {
+        let maxForwardDelay = 0;
+        pawns.forEach(p => {
+            const existing = visualPawnsRef.current.find(vp => vp._id === p._id);
+            if (existing && existing.position !== p.position) {
+                const path = getPath(p.color, existing.position, p.position);
+                const isBeaten = p.position >= 0 && p.position <= 15 && existing.position > 15;
+                if (!isBeaten && path.length > 1) {
+                    maxForwardDelay = Math.max(maxForwardDelay, (path.length - 1) * 200);
+                }
+            }
+        });
+
         const newVisualPawns = pawns.map(p => {
             const existing = visualPawnsRef.current.find(vp => vp._id === p._id);
             const targetCoords = positionMapCoords[p.position];
             
             if (existing && existing.position !== p.position) {
-                // Pawn moved, start animation
+                // Pawn moved, calculate path
+                const path = getPath(p.color, existing.position, p.position);
+                const isBeaten = p.position >= 0 && p.position <= 15 && existing.position > 15;
+                
+                // If tab was asleep, the pawn might have moved a huge distance instantly. Skip animation to prevent backlog looping.
+                if (!isBeaten && path.length > 7) {
+                    return { ...p, x: targetCoords.x, y: targetCoords.y, isAnimating: false };
+                }
+
+                const animStartTime = performance.now() + (isBeaten ? maxForwardDelay : 0);
+                
+                if (!isBeaten && path.length > 1) {
+                    // Play step sound for the first move out of base, or first step
+                    audioManager.play('step');
+                }
+
+                // If path is just one step (direct move or capture), set next target
+                const nextPos = path.length > 1 ? path[1] : path[0];
+                const nextCoords = positionMapCoords[nextPos];
+
+                let captureDuration = 600;
+                if (isBeaten) {
+                    const distance = Math.hypot(targetCoords.x - existing.x, targetCoords.y - existing.y);
+                    // Constant speed: max 650px in 3000ms => speed = 0.216 px/ms
+                    captureDuration = Math.max(300, (distance / 650) * 3000); 
+                }
+
                 return {
                     ...p,
+                    path: path,
+                    pathIndex: 1, // we are moving towards index 1
+                    isBeaten: isBeaten,
+                    captureDuration: captureDuration,
                     startX: existing.x,
                     startY: existing.y,
-                    targetX: targetCoords.x,
-                    targetY: targetCoords.y,
+                    targetX: nextCoords.x,
+                    targetY: nextCoords.y,
                     x: existing.x,
                     y: existing.y,
-                    animStartTime: performance.now(),
+                    animStartTime: animStartTime,
+                    audioPlayed: false,
                     isAnimating: true
                 };
             } else if (existing) {
                 // No movement
-                return { ...p, x: existing.x, y: existing.y, isAnimating: existing.isAnimating, animStartTime: existing.animStartTime, startX: existing.startX, startY: existing.startY, targetX: existing.targetX, targetY: existing.targetY };
+                return { 
+                    ...p, 
+                    x: existing.x, y: existing.y, 
+                    isAnimating: existing.isAnimating, 
+                    animStartTime: existing.animStartTime, 
+                    startX: existing.startX, startY: existing.startY, 
+                    targetX: existing.targetX, targetY: existing.targetY,
+                    path: existing.path, pathIndex: existing.pathIndex, isBeaten: existing.isBeaten,
+                    captureDuration: existing.captureDuration, audioPlayed: existing.audioPlayed
+                };
             } else {
                 // Initial load
+                const targetCoords = positionMapCoords[p.position];
                 return { ...p, x: targetCoords.x, y: targetCoords.y, isAnimating: false };
             }
         });
@@ -204,11 +259,6 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
                 ctx.drawImage(mapImage, 0, 0, 460, 460);
             }
 
-            // We can remove the safe position grey circles since the new board SVG has stars on safe spots natively, 
-            // but let's keep them very faint just in case they are useful for hitboxes visually.
-            // Actually, the new SVG has beautiful stars, let's not draw ugly grey circles over them!
-            // safePositions drawing removed for new UI.
-
             // Update & Draw Pawns
             visualPawnsRef.current.forEach((pawn, index) => {
                 let currentX = pawn.x;
@@ -216,17 +266,58 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
 
                 if (pawn.isAnimating) {
                     const elapsed = time - pawn.animStartTime;
-                    const duration = 400; // ms
-                    const progress = Math.min(elapsed / duration, 1);
-                    
-                    // Easing (ease-out cubic)
-                    const easeOut = 1 - Math.pow(1 - progress, 3);
-                    
-                    currentX = pawn.startX + (pawn.targetX - pawn.startX) * easeOut;
-                    currentY = pawn.startY + (pawn.targetY - pawn.startY) * easeOut;
 
-                    if (progress === 1) {
-                        pawn.isAnimating = false;
+                    if (elapsed < 0) {
+                        // Still waiting for delay (e.g. beaten pawn waiting for capturing pawn)
+                        currentX = pawn.startX;
+                        currentY = pawn.startY;
+                    } else {
+                        if (pawn.isBeaten && !pawn.audioPlayed) {
+                            audioManager.play('death');
+                            pawn.audioPlayed = true;
+                        }
+
+                        const duration = pawn.isBeaten ? pawn.captureDuration : 200; // Constant speed for capture, 200ms per step otherwise
+                        const progress = Math.min(elapsed / duration, 1);
+                        
+                        // Easing for normal steps, linear for capture
+                        const ease = pawn.isBeaten ? progress : 1 - Math.pow(1 - progress, 3);
+                        
+                        currentX = pawn.startX + (pawn.targetX - pawn.startX) * ease;
+                        currentY = pawn.startY + (pawn.targetY - pawn.startY) * ease;
+
+                        if (progress === 1) {
+                            // Reached the current cell target
+                            if (pawn.path && pawn.pathIndex < pawn.path.length - 1) {
+                                // More steps to go!
+                                pawn.pathIndex++;
+                                const nextPos = pawn.path[pawn.pathIndex];
+                                const targetCoords = positionMapCoords[nextPos];
+                                
+                                pawn.startX = currentX;
+                                pawn.startY = currentY;
+                                pawn.targetX = targetCoords.x;
+                                pawn.targetY = targetCoords.y;
+                                pawn.animStartTime = time;
+                                
+                                if (!pawn.isBeaten) audioManager.play('step');
+                            } else {
+                                // Final destination reached
+                                pawn.isAnimating = false;
+                                
+                                if (!pawn.isBeaten) {
+                                    // Check for safe spot or win
+                                    const safeSpots = [16, 24, 29, 37, 42, 50, 55, 63];
+                                    const winSpots = { red: 73, blue: 79, yellow: 85, green: 91 };
+                                    
+                                    if (pawn.position === winSpots[pawn.color]) {
+                                        audioManager.play('panta');
+                                    } else if (safeSpots.includes(pawn.position)) {
+                                        audioManager.play('safe');
+                                    }
+                                }
+                            }
+                        }
                     }
                     
                     pawn.x = currentX;

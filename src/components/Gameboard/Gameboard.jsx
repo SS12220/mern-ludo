@@ -8,6 +8,7 @@ import Lobby from '../Lobby/Lobby';
 import Overlay from '../Overlay/Overlay';
 import styles from './Gameboard.module.css';
 import trophyImage from '../../images/trophy.webp';
+import audioManager from '../../utils/audioManager';
 
 const Gameboard = () => {
     const socket = useContext(SocketContext);
@@ -80,6 +81,18 @@ const Gameboard = () => {
         });
 
     }, [socket, context.playerId, context.roomId, setRolledNumber]);
+
+    useEffect(() => {
+        if (started) {
+            audioManager.play('gamestart');
+        }
+    }, [started]);
+
+    useEffect(() => {
+        if (winner) {
+            audioManager.play('congratulations');
+        }
+    }, [winner]);
 
     const myPlayer = players.find(p => p._id === context.playerId);
     const myColor = myPlayer ? myPlayer.color : context.color;

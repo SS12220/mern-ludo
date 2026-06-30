@@ -206,7 +206,7 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
 
         const image = loadedPawnImages[pawn.color];
         if (image && image.complete) {
-            const width = isValidToMove ? 30 : 24;
+            const width = isValidToMove ? 27.5 : 22;
             const height = isValidToMove ? 37.5 : 30;
             const offsetX = -width / 2;
             const offsetY = -height * 0.8;
@@ -224,8 +224,8 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
         const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
+        const scaleX = 500 / rect.width;
+        const scaleY = 500 / rect.height;
         const cursorX_screen = (event.clientX - rect.left) * scaleX;
         const cursorY_screen = (event.clientY - rect.top) * scaleY;
 
@@ -249,8 +249,8 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
         const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
+        const scaleX = 500 / rect.width;
+        const scaleY = 500 / rect.height;
         const cursorX_screen = (event.clientX - rect.left) * scaleX;
         const cursorY_screen = (event.clientY - rect.top) * scaleY;
 
@@ -280,8 +280,10 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
             
-            // Clear canvas
+            // Clear canvas and apply high DPI scaling
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.scale(2, 2);
 
             if (mapImage.complete) {
                 ctx.drawImage(mapImage, 20, 20, 460, 460);
@@ -389,6 +391,7 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
                 pawn.touchableArea = paintPawn(ctx, pawn, currentX, currentY, isValidToMove);
             });
 
+            ctx.restore();
             animationFrameRef.current = requestAnimationFrame(renderLoop);
         };
 
@@ -399,9 +402,9 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
     return (
         <canvas
             className='canvas-container'
-            style={{ transform: `rotate(${rotationAngle}deg)`, transition: 'transform 0.5s ease' }}
-            width={500}
-            height={500}
+            style={{ transform: `rotate(${rotationAngle}deg)`, transition: 'transform 0.5s ease', width: '500px', height: '500px' }}
+            width={1000}
+            height={1000}
             ref={canvasRef}
             onClick={handleCanvasClick}
             onMouseMove={handleMouseMove}

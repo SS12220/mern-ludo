@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import styles from './AnimatedOverlay.module.css';
 
 const AnimatedOverlay = ({ time }) => {
@@ -10,7 +10,7 @@ const AnimatedOverlay = ({ time }) => {
     return (
         <svg className={styles.overlaySvg} data-testid='animated-overlay'>
             <rect
-                x="3" y="3" width="calc(100% - 6px)" height="calc(100% - 6px)"
+                x="1.5" y="1.5" width="57" height="57"
                 rx="10" ry="10"
                 pathLength="100"
                 className={styles.timerStroke}

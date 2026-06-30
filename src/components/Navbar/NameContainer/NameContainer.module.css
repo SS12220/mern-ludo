@@ -14,33 +14,29 @@
 }
 
 .TL {
-    left: 22px;
+    left: 30px;
     top: 20px;
-    width: 32px;
     height: 184px;
     writing-mode: vertical-lr;
-    transform: rotate(180deg);
 }
 
 .TR {
     right: 20px;
-    top: 22px;
+    top: 50px;
     width: 184px;
-    height: 32px;
     transform: rotate(180deg);
 }
 
 .BL {
     left: 20px;
-    bottom: 22px;
+    bottom: 50px;
     width: 184px;
-    height: 32px;
 }
 
 .BR {
-    right: 22px;
+    right: 30px;
     bottom: 20px;
-    width: 32px;
     height: 184px;
-    writing-mode: vertical-rl;
+    writing-mode: vertical-lr;
+    transform: rotate(180deg);
 }

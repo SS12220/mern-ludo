@@ -107,14 +107,14 @@ const Navbar = ({ players, started, time, isReady, rolledNumber, nowMoving, movi
         <div className={styles.gameLayout}>
             {/* Admin Game Controls */}
             {isAdmin && (
-                <div className={styles.adminControlsOverlay} style={{ right: '10px', left: 'auto', top: '10px' }}>
+                <div className={styles.adminControlsOverlay} style={{ left: '10px', right: 'auto', top: '10px' }}>
                     <button 
                         onClick={() => setShowAdminMenu(!showAdminMenu)} 
                         style={{ padding: '8px 12px', cursor: 'pointer', background: '#333', color: '#fff', border: '1px solid #555', borderRadius: '8px', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
                         ☰ 
                     </button>
                     {showAdminMenu && (
-                        <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', background: '#222', border: '1px solid #444', borderRadius: '8px', display: 'flex', flexDirection: 'column', width: '180px', zIndex: 1000, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+                        <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '8px', background: '#222', border: '1px solid #444', borderRadius: '8px', display: 'flex', flexDirection: 'column', width: '180px', zIndex: 1000, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
                             {!started && players.length > 1 && (
                                 <button onClick={() => { socket.emit('game:start'); setShowAdminMenu(false); }} style={{ padding: '12px', cursor: 'pointer', background: '#28a745', color: '#fff', border: 'none', textAlign: 'left', borderBottom: '1px solid #444', fontWeight: 'bold' }}>
                                     Start Game

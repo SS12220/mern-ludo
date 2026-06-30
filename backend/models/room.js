@@ -259,15 +259,21 @@ RoomSchema.methods.getPlayer = function (playerId) {
 RoomSchema.methods.addPlayer = function (name, id) {
     if (this.full) return;
     
-    // Find the first color not already taken by existing players
-    const usedColors = this.players.map(p => p.color);
-    const availableColor = COLORS.find(c => !usedColors.includes(c));
+    let assignedColor;
+    if (this.players.length === 1) {
+        const firstPlayerColor = this.players[0].color;
+        const oppositeColors = { red: 'yellow', yellow: 'red', blue: 'green', green: 'blue' };
+        assignedColor = oppositeColors[firstPlayerColor];
+    } else {
+        const usedColors = this.players.map(p => p.color);
+        assignedColor = COLORS.find(c => !usedColors.includes(c));
+    }
 
     this.players.push({
         sessionID: id,
         name: name,
         ready: false,
-        color: availableColor || COLORS[this.players.length],
+        color: assignedColor || COLORS[this.players.length],
     });
     if (this.players.length === 1) {
         this.adminId = this.players[0]._id.toString();

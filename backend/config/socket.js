@@ -2,6 +2,7 @@ const socketManager = require('../socket/socketManager');
 const registerPlayerHandlers = require('../handlers/playerHandler');
 const registerRoomHandlers = require('../handlers/roomHandler');
 const registerGameHandlers = require('../handlers/gameHandler');
+const registerAudioHandlers = require('../handlers/audioHandler');
 const { sessionMiddleware, wrap } = require('../config/session');
 
 module.exports = function (server) {
@@ -17,6 +18,7 @@ module.exports = function (server) {
         registerPlayerHandlers(socket);
         registerRoomHandlers(socket);
         registerGameHandlers(socket);
+        registerAudioHandlers(socket);
         if (socket.request.session.roomId) {
             const roomId = socket.request.session.roomId.toString();
             socket.join(roomId);

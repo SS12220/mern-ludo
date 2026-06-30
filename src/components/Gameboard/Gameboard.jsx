@@ -6,6 +6,7 @@ import Map from './Map/Map';
 import Navbar from '../Navbar/Navbar';
 import Lobby from '../Lobby/Lobby';
 import Overlay from '../Overlay/Overlay';
+import AudioCallManager from '../AudioCallManager/AudioCallManager';
 import styles from './Gameboard.module.css';
 import trophyImage from '../../images/trophy.webp';
 import audioManager from '../../utils/audioManager';
@@ -179,6 +180,7 @@ const Gameboard = () => {
         <>
             {/* Global Controls */}
             <div style={{ position: 'fixed', right: '10px', top: '10px', zIndex: 9999, display: 'flex', gap: '10px' }}>
+                <AudioCallManager socket={socket} />
                 <button 
                     onClick={calculateScale} 
                     title="Recalibrate Board Size"

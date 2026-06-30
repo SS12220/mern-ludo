@@ -25,6 +25,48 @@ const Gameboard = () => {
     const [movingPlayer, setMovingPlayer] = useState('red');
 
     const [winner, setWinner] = useState(null);
+    const [scale, setScale] = useState(1);
+    
+    const toggleFullScreen = () => {
+        if (!document.fullscreenElement) {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log("Error attempting to enable fullscreen:", err);
+                });
+            } else if (document.documentElement.webkitRequestFullscreen) { /* Safari */
+                document.documentElement.webkitRequestFullscreen();
+            } else if (document.documentElement.msRequestFullscreen) { /* IE11 */
+                document.documentElement.msRequestFullscreen();
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) { /* Safari */
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) { /* IE11 */
+                document.msExitFullscreen();
+            }
+        }
+    };
+
+    const calculateScale = () => {
+        const padding = 20;
+        const availableWidth = window.innerWidth - padding;
+        const availableHeight = window.innerHeight - padding;
+        
+        // Base dimensions: 500 width, 690 height (500 board + 2x 80 dice rows + gap)
+        const scaleX = availableWidth / 500;
+        const scaleY = availableHeight / 690;
+        
+        const minScale = Math.min(scaleX, scaleY);
+        setScale(Math.min(minScale, 1.5)); // Cap scale at 1.5 for very large screens
+    };
+
+    useEffect(() => {
+        calculateScale();
+        window.addEventListener('resize', calculateScale);
+        return () => window.removeEventListener('resize', calculateScale);
+    }, []);
     
     // Admin state
     const [adminId, setAdminId] = useState(null);
@@ -99,8 +141,24 @@ const Gameboard = () => {
 
     return (
         <>
+            {/* Global Controls */}
+            <div style={{ position: 'fixed', right: '10px', top: '10px', zIndex: 9999, display: 'flex', gap: '10px' }}>
+                <button 
+                    onClick={calculateScale} 
+                    title="Recalibrate Board Size"
+                    style={{ padding: '8px 12px', cursor: 'pointer', background: 'rgba(0, 0, 0, 0.5)', color: '#fff', border: '1px solid #555', borderRadius: '8px', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', backdropFilter: 'blur(5px)' }}>
+                    ⟲
+                </button>
+                <button 
+                    onClick={toggleFullScreen} 
+                    title="Toggle Fullscreen"
+                    style={{ padding: '8px 12px', cursor: 'pointer', background: 'rgba(0, 0, 0, 0.5)', color: '#fff', border: '1px solid #555', borderRadius: '8px', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', backdropFilter: 'blur(5px)' }}>
+                    ⛶ 
+                </button>
+            </div>
+            
             {pawns.length === 16 ? (
-                <div className='container'>
+                <div className='container' style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}>
                     {!started ? (
                         <Lobby players={players} adminId={adminId} teamMode={teamMode} />
                     ) : (

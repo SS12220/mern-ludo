@@ -10,7 +10,9 @@ const getRooms = async () => {
 };
 
 const updateRoom = async room => {
-    return await Room.findOneAndUpdate({ _id: room._id }, room).exec();
+    const updatedRoom = await Room.findOneAndUpdate({ _id: room._id }, room, { new: true }).exec();
+    sendToPlayersData(updatedRoom);
+    return updatedRoom;
 };
 
 const getJoinableRoom = async () => {
@@ -20,11 +22,8 @@ const getJoinableRoom = async () => {
 const createNewRoom = async data => {
     const room = new Room(data);
     await room.save();
+    sendToPlayersData(room);
     return room;
 };
-
-Room.watch().on('change', async data => {
-    sendToPlayersData(await getRoom(data.documentKey._id));
-});
 
 module.exports = { getRoom, getRooms, updateRoom, getJoinableRoom, createNewRoom };

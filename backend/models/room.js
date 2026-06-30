@@ -16,7 +16,7 @@ const RoomSchema = new mongoose.Schema({
     rolledNumber: Number,
     adminId: String,
     isPaused: { type: Boolean, default: false },
-    timerEnabled: { type: Boolean, default: true },
+    timerEnabled: { type: Boolean, default: false },
     teamMode: { type: Boolean, default: false },
     players: [PlayerSchema],
     winner: { type: String, default: null },
@@ -87,12 +87,26 @@ RoomSchema.methods.beatPawns = function (position, attackingPawnColor) {
     return cut;
 };
 
-RoomSchema.methods.changeMovingPlayer = function () {
+RoomSchema.methods.changeMovingPlayer = function (previousColor) {
     if (this.winner) return;
-    const playerIndex = this.players.findIndex(player => player.nowMoving === true);
-    const movingPlayer = this.players[playerIndex];
-    movingPlayer.nowMoving = false;
-    movingPlayer.consecutiveSixes = 0;
+    
+    let movingPlayer;
+    let playerIndex = -1;
+    if (previousColor) {
+        movingPlayer = this.players.find(p => p.color === previousColor);
+        playerIndex = this.players.findIndex(p => p.color === previousColor);
+    } else {
+        playerIndex = this.players.findIndex(player => player.nowMoving === true);
+        if (playerIndex !== -1) movingPlayer = this.players[playerIndex];
+    }
+    
+    if (movingPlayer) {
+        movingPlayer.nowMoving = false;
+        movingPlayer.consecutiveSixes = 0;
+    } else {
+        movingPlayer = this.players[0];
+        playerIndex = 0;
+    }
     
     const clockwiseOrder = ['red', 'green', 'yellow', 'blue'];
     let currentIndex = clockwiseOrder.indexOf(movingPlayer.color);

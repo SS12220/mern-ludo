@@ -15,25 +15,40 @@ module.exports = socket => {
             const newPositionOfMovedPawn = pawn.getPositionAfterMove(room.rolledNumber);
             room.changePositionOfPawn(pawn, newPositionOfMovedPawn);
             const movingPlayer = room.getCurrentlyMovingPlayer();
-            const cut = room.beatPawns(newPositionOfMovedPawn, movingPlayer.color);
+            const movingColor = movingPlayer.color;
+            const cut = room.beatPawns(newPositionOfMovedPawn, movingColor);
             
             const isHome = [73, 79, 85, 91].includes(newPositionOfMovedPawn);
             const rolledSix = room.rolledNumber === 6;
 
-            if (cut || isHome || rolledSix) {
-                room.rolledNumber = null;
-                timeoutManager.clear(room._id.toString());
-                timeoutManager.set(makeRandomMove, MOVE_TIME, room._id.toString());
-            } else {
-                room.changeMovingPlayer();
-            }
-            
-            const winner = room.getWinner();
-            if (winner) {
-                room.endGame(winner);
-                sendWinner(room._id.toString(), winner);
-            }
-            await updateRoom(room);
+            // Clear rolled number and timer immediately
+            room.rolledNumber = null;
+            movingPlayer.nowMoving = false;
+            timeoutManager.clear(room._id.toString());
+            await updateRoom(room); // Emit pawn movement first
+
+            // Wait for animation to finish before changing turn or setting timer
+            setTimeout(async () => {
+                const latestRoom = await getRoom(req.session.roomId);
+                if (!latestRoom || latestRoom.winner) return;
+
+                if (cut || isHome || rolledSix) {
+                    const player = latestRoom.players.find(p => p.color === movingColor);
+                    if (player) player.nowMoving = true;
+                    if (latestRoom.timerEnabled && !latestRoom.isPaused) {
+                        timeoutManager.set(makeRandomMove, MOVE_TIME, latestRoom._id.toString());
+                    }
+                } else {
+                    latestRoom.changeMovingPlayer(movingColor);
+                }
+                
+                const winner = latestRoom.getWinner();
+                if (winner) {
+                    latestRoom.endGame(winner);
+                    sendWinner(latestRoom._id.toString(), winner);
+                }
+                await updateRoom(latestRoom);
+            }, 800);
         }
     };
 

@@ -4,7 +4,6 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
 require('dotenv').config();
-delete process.env.CONNECTION_URI; // Force using local in-memory database
 
 
 const PORT = process.env.PORT;
@@ -38,7 +37,7 @@ async function startServer() {
     const { sessionMiddleware } = require('./config/session');
     app.use(sessionMiddleware);
 
-    server = app.listen(PORT, () => {
+    server = app.listen(PORT, '0.0.0.0', () => {
         console.log(`Server listening on port ${PORT}`);
     });
 

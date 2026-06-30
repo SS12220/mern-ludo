@@ -149,8 +149,8 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
                 let captureDuration = 600;
                 if (isBeaten) {
                     const distance = Math.hypot(targetCoords.x - existing.x, targetCoords.y - existing.y);
-                    // Constant speed: max 650px in 3000ms => speed = 0.216 px/ms
-                    captureDuration = Math.max(300, (distance / 650) * 3000); 
+                    // Constant speed: max 650px in 600ms => speed = 1.08 px/ms
+                    captureDuration = Math.max(200, (distance / 650) * 600); 
                 }
 
                 return {
@@ -237,7 +237,10 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
         const cursorY = 250 + dx * Math.sin(angleRad) + dy * Math.cos(angleRad);
         
         for (const pawn of visualPawnsRef.current) {
-            if (ctx.isPointInPath(pawn.touchableArea, cursorX, cursorY)) {
+            // Skip if this pawn's color is not in the active players
+            if (!players.find(p => p.name !== '...' && p.color === pawn.color)) continue;
+
+            if (pawn.touchableArea && ctx.isPointInPath(pawn.touchableArea, cursorX, cursorY)) {
                 if (canPawnMove(pawn, effectiveRolledNumber) && canInteractWithColor(pawn.color)) socket.emit('game:move', pawn._id);
             }
         }
@@ -262,6 +265,9 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
         const y = 230 + dx * Math.sin(angleRad) + dy * Math.cos(angleRad);
         canvas.style.cursor = 'default';
         for (const pawn of visualPawnsRef.current) {
+            // Skip if this pawn's color is not in the active players
+            if (!players.find(p => p.name !== '...' && p.color === pawn.color)) continue;
+
             if (pawn.touchableArea && ctx.isPointInPath(pawn.touchableArea, x, y) && canInteractWithColor(pawn.color)) {
                 if (canPawnMove(pawn, effectiveRolledNumber)) {
                     const pawnPosition = getPositionAfterMove(pawn, effectiveRolledNumber);
@@ -323,6 +329,9 @@ const Map = ({ pawns, nowMoving, rolledNumber, localColor, players }) => {
 
             // Update & Draw Pawns
             visualPawnsRef.current.forEach((pawn, index) => {
+                // Skip if this pawn's color is not in the active players
+                if (!players.find(p => p.name !== '...' && p.color === pawn.color)) return;
+
                 let currentX = pawn.x;
                 let currentY = pawn.y;
 
